@@ -1,0 +1,4 @@
+# fetch_signals.py currently uses only Python stdlib (urllib, json, os) —
+# no dependencies to install. This file is here so future additions
+# (e.g. pandas for the history log, or a proper requests session with
+# retry/backoff) have somewhere to go without restructuring the workflow.
