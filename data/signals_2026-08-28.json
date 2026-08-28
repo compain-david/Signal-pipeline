@@ -1,6 +1,6 @@
 {
   "date": "2026-08-28",
-  "fetched_at": "2026-08-28T12:33:08.635479+00:00",
+  "fetched_at": "2026-08-28T12:36:46.011629+00:00",
   "thresholds": {
     "fear_greed_above": 60,
     "btc_dominance_below": 54.0,
@@ -20,8 +20,8 @@
     "signal": 59.2,
     "btc_dominance_pct": 59.2,
     "eth_dominance_pct": 11.19,
-    "btc_price_usd": 79503,
-    "eth_price_usd": 2500.63,
+    "btc_price_usd": 79472,
+    "eth_price_usd": 2499.47,
     "eth_btc_ratio": 0.03145,
     "source": "coingecko (keyless)",
     "fired_rotation_gate": false,
@@ -56,20 +56,23 @@
     "status": "ok"
   },
   "alt_funding_rates": {
-    "signal": 7.57,
-    "alt_avg_funding_apr_pct": 7.57,
+    "signal": 7.56,
+    "alt_avg_funding_apr_pct": 7.56,
     "per_symbol": {
       "ETHUSDT": {
-        "rate_8h_pct": 0.00919,
-        "apr_pct": 10.06
+        "rate_pct": 0.009136,
+        "settlements_per_day": 3,
+        "apr_pct": 10.0
       },
       "SOLUSDT": {
-        "rate_8h_pct": 0.00262,
-        "apr_pct": 2.87
+        "rate_pct": 0.002571,
+        "settlements_per_day": 3,
+        "apr_pct": 2.81
       },
       "XRPUSDT": {
-        "rate_8h_pct": 0.00894,
-        "apr_pct": 9.78
+        "rate_pct": 0.009023,
+        "settlements_per_day": 3,
+        "apr_pct": 9.88
       }
     },
     "source": "okx (keyless)",
