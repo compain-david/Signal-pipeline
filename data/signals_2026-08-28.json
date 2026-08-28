@@ -1,0 +1,108 @@
+{
+  "date": "2026-08-28",
+  "fetched_at": "2026-08-28T12:33:08.635479+00:00",
+  "thresholds": {
+    "fear_greed_above": 60,
+    "btc_dominance_below": 54.0,
+    "mvrv_z_above": 3.0,
+    "mvrv_ratio_above": 3.0,
+    "alt_funding_apr_above": 25.0,
+    "eth_netflow_7d_below": 0.0
+  },
+  "fear_greed": {
+    "signal": 73,
+    "classification": "Greed",
+    "source": "alternative.me",
+    "fired_rotation_gate": true,
+    "status": "ok"
+  },
+  "dominance_and_prices": {
+    "signal": 59.2,
+    "btc_dominance_pct": 59.2,
+    "eth_dominance_pct": 11.19,
+    "btc_price_usd": 79503,
+    "eth_price_usd": 2500.63,
+    "eth_btc_ratio": 0.03145,
+    "source": "coingecko (keyless)",
+    "fired_rotation_gate": false,
+    "status": "ok"
+  },
+  "mvrv": {
+    "signal": 1.514,
+    "metric": "mvrv_ratio",
+    "as_of": "2026-08-27",
+    "source": "coinmetrics (community, keyless)",
+    "fired_rotation_gate": false,
+    "note": "MVRV ratio, not Z-Score - threshold differs; set GLASSNODE_API_KEY for the Z-Score",
+    "status": "ok"
+  },
+  "exchange_netflows": {
+    "signal": -103929.59,
+    "btc": {
+      "as_of": "2026-08-27",
+      "held_native": 2696997.8,
+      "netflow_1d": -6243.87,
+      "netflow_7d": -13646.97
+    },
+    "eth": {
+      "as_of": "2026-08-27",
+      "held_native": 15642449.4,
+      "netflow_1d": -36530.84,
+      "netflow_7d": -103929.59
+    },
+    "source": "coinmetrics (community, keyless)",
+    "interpretation": "negative = net outflow from exchanges = accumulation",
+    "fired_rotation_gate": true,
+    "status": "ok"
+  },
+  "alt_funding_rates": {
+    "signal": 7.57,
+    "alt_avg_funding_apr_pct": 7.57,
+    "per_symbol": {
+      "ETHUSDT": {
+        "rate_8h_pct": 0.00919,
+        "apr_pct": 10.06
+      },
+      "SOLUSDT": {
+        "rate_8h_pct": 0.00262,
+        "apr_pct": 2.87
+      },
+      "XRPUSDT": {
+        "rate_8h_pct": 0.00894,
+        "apr_pct": 9.78
+      }
+    },
+    "source": "okx (keyless)",
+    "fallbacks_tried": [
+      "_funding_binance: HTTP Error 451: ",
+      "_funding_bybit: HTTP Error 403: Forbidden"
+    ],
+    "fired_rotation_gate": false,
+    "status": "ok"
+  },
+  "social_volume": {
+    "status": "no_key",
+    "signal": null,
+    "fired_rotation_gate": null,
+    "note": "LunarCrush is paid-only for automation. This is the one signal with no free equivalent - budget decision."
+  },
+  "alt_etf_flows": {
+    "status": "no_api",
+    "signal": null,
+    "fired_rotation_gate": null,
+    "note": "no stable public API - pull via the weekly brief web_search step"
+  },
+  "gate_tally": {
+    "fired": 2,
+    "checkable_today": 5,
+    "fired_signals": [
+      "fear_greed",
+      "exchange_netflows"
+    ],
+    "unavailable": [
+      "social_volume",
+      "alt_etf_flows"
+    ],
+    "note": "only counts signals this run could verify - missing sources reduce the denominator, not the numerator"
+  }
+}
