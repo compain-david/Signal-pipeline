@@ -2,12 +2,17 @@ name: Daily Signal Fetch
 
 on:
   schedule:
-    # 06:00 UTC daily — adjust if you want it aligned closer to your Sunday review
+    # 06:00 UTC daily
     - cron: '0 6 * * *'
-  workflow_dispatch: {}  # lets you trigger it manually from the Actions tab to test
+  workflow_dispatch: {}  # manual trigger from the Actions tab
 
 permissions:
   contents: write  # needed to commit the data/ output back to the repo
+
+# never let a manual run and the scheduled run race on the same push
+concurrency:
+  group: daily-signals
+  cancel-in-progress: false
 
 jobs:
   fetch:
@@ -21,19 +26,30 @@ jobs:
 
       - name: Run signal fetcher
         env:
-          # These stay undefined until you add them under
-          # Settings -> Secrets and variables -> Actions -> New repository secret.
-          # The script degrades gracefully if any are missing.
+          # ALL OPTIONAL. Five of seven signals work with no secrets at all.
+          # Add under Settings -> Secrets and variables -> Actions.
+          #
+          # COINGECKO_API_KEY  - free demo key. Recommended: the keyless tier
+          #                      rate-limits datacenter IPs, and runners are
+          #                      datacenter IPs.
+          # GLASSNODE_API_KEY  - upgrades MVRV ratio -> true MVRV Z-Score.
+          # LUNARCRUSH_API_KEY - paid. The only signal with no free equivalent.
+          COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
           GLASSNODE_API_KEY: ${{ secrets.GLASSNODE_API_KEY }}
-          CRYPTOQUANT_API_KEY: ${{ secrets.CRYPTOQUANT_API_KEY }}
-          COINGLASS_API_KEY: ${{ secrets.COINGLASS_API_KEY }}
           LUNARCRUSH_API_KEY: ${{ secrets.LUNARCRUSH_API_KEY }}
         run: python scripts/fetch_signals.py
 
       - name: Commit updated data
+        if: always()  # capture the snapshot even if the fetcher exited non-zero
         run: |
           git config user.name "signal-pipeline-bot"
           git config user.email "actions@github.com"
           git add data/
-          git diff --staged --quiet || git commit -m "Daily signal snapshot $(date -u +%Y-%m-%d)"
-          git push
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Daily signal snapshot $(date -u +%Y-%m-%d)"
+          # rebase in case a manual run landed first
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
