@@ -72,6 +72,31 @@ def _get(url, headers=None, retries=3):
     raise last
 
 
+def _post(url, payload, headers=None, retries=3):
+    """POST + JSON with the same backoff policy as _get."""
+    body = json.dumps(payload).encode()
+    hdrs = {**UA, "Content-Type": "application/json", **(headers or {})}
+    last = None
+    for attempt in range(retries):
+        try:
+            req = urllib.request.Request(url, data=body, headers=hdrs, method="POST")
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            last = e
+            if e.code in (429, 418, 500, 502, 503, 504) and attempt < retries - 1:
+                time.sleep(2 ** attempt * 2)
+                continue
+            raise
+        except Exception as e:
+            last = e
+            if attempt < retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            raise
+    raise last
+
+
 def safe_fetch(fn):
     """Wrap any fetch so one failing source never kills the whole run."""
     try:
@@ -247,7 +272,7 @@ def fetch_exchange_netflows():
 def _funding_binance():
     data = _get("https://fapi.binance.com/fapi/v1/premiumIndex")
     rates = {d["symbol"]: float(d["lastFundingRate"]) for d in data}
-    return {s: rates[s] for s in ALTS if s in rates}, "binance"
+    return {s: rates[s] for s in ALTS if s in rates}, "binance", 3
 
 
 def _funding_bybit():
@@ -258,7 +283,7 @@ def _funding_bybit():
         lst = d.get("result", {}).get("list") or []
         if lst and lst[0].get("fundingRate") not in (None, ""):
             out[sym] = float(lst[0]["fundingRate"])
-    return out, "bybit"
+    return out, "bybit", 3
 
 
 def _funding_okx():
@@ -269,22 +294,45 @@ def _funding_okx():
         rows = d.get("data") or []
         if rows and rows[0].get("fundingRate"):
             out[sym] = float(rows[0]["fundingRate"])
-    return out, "okx"
+    return out, "okx", 3
+
+
+def _funding_hyperliquid():
+    """Last-resort fallback. Hyperliquid is a DEX with no geo-blocking, which
+    matters because Binance (451) and Bybit (403) both refuse GitHub runner
+    IPs. NOTE: funding settles HOURLY here, not 8-hourly."""
+    meta, ctxs = _post("https://api.hyperliquid.xyz/info",
+                       {"type": "metaAndAssetCtxs"})
+    wanted = {s.replace("USDT", ""): s for s in ALTS}
+    out = {}
+    for i, coin in enumerate(meta.get("universe", [])):
+        name = coin.get("name")
+        if name in wanted and not coin.get("isDelisted") and i < len(ctxs):
+            funding = ctxs[i].get("funding")
+            if funding is not None:
+                out[wanted[name]] = float(funding)
+    return out, "hyperliquid", 24
 
 
 def fetch_funding_rates():
-    """Perp funding for the alt basket. Assumes an 8h funding interval."""
+    """Perp funding for the alt basket.
+
+    Each provider declares its settlements-per-day so the APR is comparable
+    across venues: CEX perps settle every 8h (3/day), Hyperliquid hourly.
+    """
     errors = []
-    for provider in (_funding_binance, _funding_bybit, _funding_okx):
+    for provider in (_funding_binance, _funding_bybit,
+                     _funding_okx, _funding_hyperliquid):
         try:
-            rates, source = provider()
+            rates, source, per_day = provider()
             if not rates:
                 errors.append(provider.__name__ + ": empty")
                 continue
             per_sym = {
                 s: {
-                    "rate_8h_pct": round(r * 100, 5),
-                    "apr_pct": round(r * 3 * 365 * 100, 2),
+                    "rate_pct": round(r * 100, 6),
+                    "settlements_per_day": per_day,
+                    "apr_pct": round(r * per_day * 365 * 100, 2),
                 }
                 for s, r in rates.items()
             }

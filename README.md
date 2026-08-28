@@ -21,12 +21,36 @@ Five of seven signals need **no API key at all**.
 | BTC/ETH dominance + prices | CoinGecko | optional | yes |
 | MVRV | CoinMetrics community | none | yes |
 | Exchange netflows | CoinMetrics community | none | yes |
-| Alt funding rates | Binance → Bybit → OKX | none | yes |
+| Alt funding rates | Binance → Bybit → OKX → Hyperliquid | none | yes |
 | Social volume | LunarCrush | **required, paid** | no |
 | Alt ETF flows | — | no public API | n/a |
 
 "Verified live" = actually returned real data during setup, not just written
 against docs.
+
+### Verified from a GitHub runner
+
+Confirmed end-to-end on run
+[33171527807](https://github.com/compain-david/Signal-pipeline/actions):
+**5 of 5 checkable signals returned real data**, and the runner committed its
+snapshot back to `data/`.
+
+That run also proved why the funding fallback chain exists:
+
+```
+binance: HTTP Error 451     <- geo-blocked from the runner IP
+bybit:   HTTP Error 403     <- blocked
+okx:     ok
+```
+
+Two of three exchanges refuse GitHub's datacenter IPs. A single-exchange
+implementation would have shipped a permanently dead signal that looked fine
+in local testing. Hyperliquid was added afterwards as a fourth link — it's a
+DEX with no geo-blocking, so it should survive even if OKX starts refusing
+runner traffic too.
+
+CoinGecko's keyless tier **did** work from the runner, so the demo key below
+is insurance against future throttling rather than an urgent fix.
 
 ### What changed from v1
 
@@ -52,19 +76,15 @@ on this pipeline's account.
 
 **Nothing is required.** It runs today as-is. In priority order:
 
-### 1. Confirm it works from a runner (2 min, do this first)
+### 1. ~~Confirm it works from a runner~~ — done
 
-Go to **Actions → Daily Signal Fetch → Run workflow**. Everything here was
-verified from a home IP; GitHub runners use datacenter IPs, which some
-providers throttle differently. This one click tells you whether that matters.
+Already verified (see above): 5 of 5 checkable signals, snapshot committed.
+Nothing needed from you here.
 
-Check the run log for `WARNING: n source(s) failed`, and check `gate_tally`
-for `checkable_today`. Expect **5**.
+### 2. Add a free CoinGecko demo key (3 min, recommended — not urgent)
 
-### 2. Add a free CoinGecko demo key (5 min, recommended)
-
-The single most likely thing to break. CoinGecko rate-limits keyless
-datacenter traffic aggressively.
+Insurance, not a fix: the keyless tier worked from the runner, but CoinGecko
+throttles datacenter traffic and that can change without notice.
 
 1. Sign up at <https://www.coingecko.com/en/developers/dashboard> (free tier)
 2. Create a Demo API key
@@ -143,8 +163,12 @@ checkable.
 
 ## Caveats
 
-- Funding APR assumes an 8h funding interval for all symbols. A few pairs
-  settle on other intervals; the APR is indicative, not exact.
+- Funding APR is annualised using each venue's settlement frequency (CEXes
+  8-hourly, Hyperliquid hourly), recorded per symbol as
+  `settlements_per_day`. A few individual pairs deviate from their venue's
+  default, so the APR is indicative rather than exact.
+- Because the venue can change between runs via the fallback chain, compare
+  `source` before reading too much into a day-over-day funding move.
 - Exchange-held supply is an estimate from labelled addresses, and is a proxy
   for netflow rather than a direct measurement of it.
 - Scheduled workflows are disabled after 60 days of repository inactivity. The
