@@ -5,6 +5,15 @@ on:
     # 06:00 UTC daily
     - cron: '0 6 * * *'
   workflow_dispatch: {}  # manual trigger from the Actions tab
+  push:
+    branches: [main]
+    # Run whenever the pipeline itself changes, so a broken edit surfaces
+    # immediately instead of at 06:00 the next morning.
+    # No loop risk: pushes made with GITHUB_TOKEN (the bot's data commits)
+    # do not trigger further workflow runs.
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/**'
 
 permissions:
   contents: write  # needed to commit the data/ output back to the repo
