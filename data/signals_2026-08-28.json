@@ -1,6 +1,6 @@
 {
   "date": "2026-08-28",
-  "fetched_at": "2026-08-28T14:19:41.175880+00:00",
+  "fetched_at": "2026-08-28T17:45:37.952001+00:00",
   "schema_version": 3,
   "thresholds": {
     "fear_greed_above": 60,
@@ -16,9 +16,9 @@
   },
   "signals": {
     "eth_btc_momentum": {
-      "signal": 4.54,
-      "eth_btc_start": 0.02982,
-      "eth_btc_now": 0.031175,
+      "signal": 5.18,
+      "eth_btc_start": 0.029807,
+      "eth_btc_now": 0.031351,
       "window_days": 14,
       "source": "coingecko (keyless)",
       "vote": false,
@@ -29,12 +29,12 @@
       "tier": "A"
     },
     "btc_dominance": {
-      "signal": 59.11,
-      "btc_dominance_pct": 59.11,
-      "eth_dominance_pct": 11.19,
-      "btc_price_usd": 78538,
-      "eth_price_usd": 2474.94,
-      "eth_btc_ratio": 0.03151,
+      "signal": 59.02,
+      "btc_dominance_pct": 59.02,
+      "eth_dominance_pct": 11.12,
+      "btc_price_usd": 77766,
+      "eth_price_usd": 2438.68,
+      "eth_btc_ratio": 0.03136,
       "source": "coingecko (keyless)",
       "vote": null,
       "fired_rotation_gate": false,
@@ -154,25 +154,25 @@
       "tier": "A"
     },
     "alt_funding_rates": {
-      "signal": 4.63,
-      "alt_avg_funding_apr_pct": 4.63,
-      "previous_apr_pct": null,
-      "rising": null,
+      "signal": 0.97,
+      "alt_avg_funding_apr_pct": 0.97,
+      "previous_apr_pct": 4.63,
+      "rising": false,
       "per_symbol": {
         "ETHUSDT": {
-          "rate_pct": 0.00881,
+          "rate_pct": 0.004931,
           "settlements_per_day": 3,
-          "apr_pct": 9.65
+          "apr_pct": 5.4
         },
         "SOLUSDT": {
-          "rate_pct": -0.000497,
+          "rate_pct": -0.004601,
           "settlements_per_day": 3,
-          "apr_pct": -0.54
+          "apr_pct": -5.04
         },
         "XRPUSDT": {
-          "rate_pct": 0.004371,
+          "rate_pct": 0.002328,
           "settlements_per_day": 3,
-          "apr_pct": 4.79
+          "apr_pct": 2.55
         }
       },
       "source": "okx (keyless)",
@@ -180,7 +180,7 @@
         "_funding_binance: HTTP Error 451: ",
         "_funding_bybit: HTTP Error 403: Forbidden"
       ],
-      "vote": null,
+      "vote": false,
       "fired_rotation_gate": false,
       "note": "vote needs positive AND rising; None on the first run of a fresh history log, when there is no prior value",
       "status": "ok",
@@ -224,8 +224,8 @@
     "sth_realized_price": {
       "signal": 69733.02,
       "sth_realized_price_usd": 69733.02,
-      "btc_price_usd": 78538,
-      "premium_pct": 12.63,
+      "btc_price_usd": 77766,
+      "premium_pct": 11.52,
       "as_of": "2026-08-27",
       "source": "bgeometrics (keyless)",
       "vote": true,
@@ -249,7 +249,7 @@
     "authoritative": false,
     "adopted_from": "2026-08-30",
     "fired": 3,
-    "checkable": 7,
+    "checkable": 8,
     "threshold": 5,
     "would_fire": false,
     "fired_signals": [
@@ -258,8 +258,7 @@
       "sth_realized_price"
     ],
     "unavailable": [
-      "eth_etf_flows",
-      "alt_funding_rates"
+      "eth_etf_flows"
     ],
     "tier_b_confirming": [],
     "note": "SHADOW MODE - logged only, legacy gate governs until 2026-08-30"
