@@ -150,6 +150,7 @@ SIGNAL_REGISTRY = {
 
     # -- Tracked only, no vote -------------------------------------------
     "btc_dominance":         (1, "track"),
+    "alt_dominance":         (1, "track"),
     "altseason_index":       (1, "track"),
     "mvrv_ratio":            (2, "track"),
     "mayer_multiple":        (2, "track"),

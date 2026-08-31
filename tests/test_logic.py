@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
 import dimensions
 import resilience
 import report
+import ladder
 
 
 class TestRegistry(unittest.TestCase):
@@ -259,3 +260,97 @@ class TestWeightedGrade(unittest.TestCase):
     def test_weights_cover_every_tier_a_signal(self):
         for k in dimensions.TIER_A_SIGNALS:
             self.assertIn(k, dimensions.WEIGHTS, k)
+
+
+class TestLadder(unittest.TestCase):
+    """The mechanics the Monte Carlo showed matter: hysteresis, dwell, floor."""
+
+    def _ok(self, votes):
+        s = {}
+        for k in ladder.ROTATION_SIGNALS:
+            s[k] = {"status": "ok", "vote": votes.get(k, False),
+                    "source_age_days": 0}
+        return s
+
+    def test_stale_source_is_not_measurable(self):
+        s = self._ok({})
+        s["fear_greed"]["source_age_days"] = 99
+        self.assertFalse(ladder._measurable(s["fear_greed"]))
+
+    def test_coverage_floor_freezes_rather_than_deciding(self):
+        s = self._ok({})
+        for k in list(ladder.ROTATION_SIGNALS)[:6]:
+            s[k]["status"] = "error"
+        info = ladder.compute_t(s)
+        self.assertLess(info["coverage"], ladder.COVERAGE_FLOOR)
+        self.assertFalse(info["measurable"])
+        state, reason = ladder.next_state("BTC", info, 999)
+        self.assertEqual(state, "BTC")
+        self.assertIn("frozen", reason)
+
+    def test_minimum_dwell_blocks_an_early_move(self):
+        info = {"measurable": True, "t": 0.99, "coverage": 1.0}
+        state, reason = ladder.next_state("BTC", info, 3)
+        self.assertEqual(state, "BTC")
+        self.assertIn("held", reason)
+
+    def test_hysteresis_band_holds_the_state(self):
+        """Between exit 0.45 and entry 0.55 nothing moves, in either direction."""
+        info = {"measurable": True, "t": 0.50, "coverage": 1.0}
+        self.assertEqual(ladder.next_state("BTC", info, 99)[0], "BTC")
+        self.assertEqual(ladder.next_state("ETH", info, 99)[0], "ETH")
+
+    def test_entry_requires_the_higher_threshold(self):
+        info = {"measurable": True, "t": 0.56, "coverage": 1.0}
+        self.assertEqual(ladder.next_state("BTC", info, 99)[0], "ETH")
+
+    def test_one_rung_at_a_time(self):
+        """No BTC -> ALT jump even at maximum score."""
+        info = {"measurable": True, "t": 1.0, "coverage": 1.0}
+        self.assertEqual(ladder.next_state("BTC", info, 99)[0], "ETH")
+
+    def test_ladder_can_never_enter_usdt(self):
+        """De-risking belongs to the sell gate; two authorities over one exit
+        is the collision the design exists to avoid."""
+        for t in (0.0, 0.3, 0.5, 0.9):
+            info = {"measurable": True, "t": t, "coverage": 1.0}
+            for state in ("BTC", "ETH", "ALT"):
+                self.assertNotEqual(ladder.next_state(state, info, 99)[0], "USDT")
+
+    def test_d1_weights_currently_sit_exactly_at_their_cap(self):
+        """D1 holds 4 signals weighing 3.0 against a cap of 3.0, so the cap is
+        not binding today - it is a guard that engages the moment a fifth
+        momentum signal is added. Asserting this pins the invariant: if
+        someone adds to D1 without raising the cap, the normalisation below
+        silently starts shrinking every D1 signal."""
+        d1 = [k for k, (d, _) in ladder.ROTATION_SIGNALS.items() if d == 1]
+        self.assertEqual(len(d1), 4)
+        self.assertAlmostEqual(sum(ladder.ROTATION_SIGNALS[k][1] for k in d1),
+                               ladder.DIMENSION_CAPS[1])
+
+    def test_cap_binds_when_a_dimension_is_overweight(self):
+        """The mechanism itself: an overweight dimension is scaled back so it
+        cannot outvote the rest by asking one question four ways."""
+        original = dict(ladder.ROTATION_SIGNALS)
+        try:
+            ladder.ROTATION_SIGNALS["extra_momentum"] = (1, 3.0)
+            s = self._ok({k: True for k in ladder.ROTATION_SIGNALS})
+            info = ladder.compute_t(s)
+            # every signal fires, so T must still be 1.0 - capping rescales
+            # numerator and denominator together, it does not distort the ratio
+            self.assertAlmostEqual(info["t"], 1.0)
+            # but D1's contribution to measurable weight is held at its cap
+            self.assertLessEqual(info["measurable_weight"],
+                                 sum(ladder.DIMENSION_CAPS.values()) + 1e-9)
+        finally:
+            ladder.ROTATION_SIGNALS.clear()
+            ladder.ROTATION_SIGNALS.update(original)
+
+    def test_evaluate_never_governs(self):
+        self.assertFalse(ladder.evaluate(self._ok({}))["governs"])
+
+    def test_risk_signals_are_absent_from_the_rotation_axis(self):
+        """MVRV Z and NVT answer 'should we be exposed at all' - risk axis.
+        Including them here was the double-count."""
+        self.assertNotIn("mvrv_z_score", ladder.ROTATION_SIGNALS)
+        self.assertNotIn("nvt", ladder.ROTATION_SIGNALS)

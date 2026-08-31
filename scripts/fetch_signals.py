@@ -37,6 +37,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import dimensions
 import resilience
 import report
+import ladder
 
 UA = {"User-Agent": "signal-pipeline/3.0 (personal use)"}
 TIMEOUT = 20
@@ -179,6 +180,71 @@ def fetch_eth_btc_momentum():
         "source": "coingecko (keyless)",
         "vote": change > thr,
         "note": "vote fires above +%.0f%% over 14d" % thr,
+    }
+
+
+def fetch_alt_dominance(dominance, history_path="data/signals_history.jsonl"):
+    """Dominance outside the top 2, rising over 30 days.
+
+    Free coverage: derived entirely from btc_dominance_pct and
+    eth_dominance_pct, both already fetched. No new source, no new key, no new
+    rate budget. Identified by the Pivot Ladder review as the single cheapest
+    way to lift measurable coverage back over the 70% floor.
+
+    The 30-day series is accumulated from this repo's own history log, so it
+    reports `building` honestly until enough days exist rather than voting on
+    a window it does not have.
+    """
+    btc = dominance.get("btc_dominance_pct")
+    eth = dominance.get("eth_dominance_pct")
+    if btc is None or eth is None:
+        raise ValueError("dominance unavailable, cannot derive alt dominance")
+    current = 100.0 - btc - eth
+
+    series = []
+    try:
+        with open(history_path, encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                d = (row.get("signals") or {}).get("btc_dominance") or {}
+                b, e = d.get("btc_dominance_pct"), d.get("eth_dominance_pct")
+                if b is not None and e is not None:
+                    series.append((row.get("date"), 100.0 - b - e))
+    except FileNotFoundError:
+        pass
+
+    # one point per day, last write wins
+    by_date = {}
+    for d, v in series:
+        if d:
+            by_date[d] = v
+    ordered = [by_date[d] for d in sorted(by_date)]
+
+    if len(ordered) < 30:
+        return {
+            "status": "building",
+            "signal": round(current, 2),
+            "vote": None,
+            "days_available": len(ordered),
+            "days_required": 30,
+            "source": "derived (btc + eth dominance, keyless)",
+            "note": "accumulating the 30-day window from this repo's own "
+                    "history; votes once %d days exist" % 30,
+        }
+
+    ref = ordered[-30]
+    return {
+        "signal": round(current, 2),
+        "ref_30d": round(ref, 2),
+        "change_pct": round(current - ref, 2),
+        "source": "derived (btc + eth dominance, keyless)",
+        "vote": current > ref,
+        "note": "votes when dominance outside the top 2 is rising over 30 days",
     }
 
 
@@ -634,6 +700,7 @@ def main():
         # dimension 1
         "eth_btc_momentum": safe_fetch(fetch_eth_btc_momentum),
         "btc_dominance": dominance,
+        "alt_dominance": safe_fetch(lambda: fetch_alt_dominance(dominance)),
         "altseason_index": safe_fetch(fetch_altseason_index),
         # dimension 2
         "mvrv_z_score": safe_fetch(fetch_mvrv_z_score),
@@ -677,6 +744,7 @@ def main():
         "gate_legacy": legacy_tally(signals),
         "gate_new": dimensions.tally(signals, today),
         "gate_grade": dimensions.grade(signals),
+        "ladder_shadow": ladder.evaluate(signals, previous),
     }
 
     os.makedirs("data", exist_ok=True)
