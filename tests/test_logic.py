@@ -379,3 +379,51 @@ class TestTrackedVotesDoNotLeak(unittest.TestCase):
         s["btc_dominance"]["vote"] = None
         without = ladder.compute_t(s)["coverage"]
         self.assertGreater(with_vote, without)
+
+
+class TestReportSurfacesDecisionInstruments(unittest.TestCase):
+    """The brief reads latest.md. Anything not rendered there does not exist
+    as far as a decision is concerned - which is how the ladder, T and the
+    grade were built and then left off the only consumable output."""
+
+    def _snap(self, **over):
+        lad = {"state": "BTC", "t": 0.5556, "coverage": 0.6875,
+               "coverage_floor": 0.70, "measurable": False,
+               "reason": "frozen - coverage below floor",
+               "pending_decisions": ["sign the update"]}
+        lad.update(over.pop("ladder", {}))
+        s = {
+            "date": "2026-08-31", "fetched_at": "x", "schema_version": 4,
+            "signals": {}, "health": {"degraded": False, "failed": 0, "stale": 0},
+            "gate_legacy": {"fired": 2, "checkable_today": 5, "fired_signals": ["a"]},
+            "gate_new": {"authoritative": True, "fired": 4, "checkable": 8,
+                         "threshold": 5, "would_fire": False, "unavailable": [],
+                         "semantic": {"reading": "mixed: 3 rotation, 1 froth"}},
+            "gate_grade": {"grade": "B", "label": "strong", "score": 4.0,
+                           "possible_this_run": 7.6,
+                           "capped_for_froth_majority": False},
+            "ladder_shadow": lad,
+        }
+        s.update(over)
+        return s
+
+    def test_ladder_state_and_t_are_rendered(self):
+        md = report.render_markdown(self._snap())
+        self.assertIn("0.5556", md)
+        self.assertIn("BTC", md)
+
+    def test_frozen_but_t_clears_the_rung_is_called_out(self):
+        """The dangerous read: state BTC looks like 'no signal' when in fact
+        T already clears the next rung and only coverage blocks the move."""
+        md = report.render_markdown(self._snap())
+        self.assertIn("Frozen on coverage", md)
+
+    def test_measurable_ladder_omits_the_warning(self):
+        md = report.render_markdown(self._snap(ladder={"measurable": True}))
+        self.assertNotIn("Frozen on coverage", md)
+
+    def test_grade_is_rendered(self):
+        self.assertIn("grade **B**", report.render_markdown(self._snap()))
+
+    def test_ladder_states_it_governs_nothing(self):
+        self.assertIn("does not govern", report.render_markdown(self._snap()))

@@ -86,17 +86,56 @@ def render_markdown(snapshot):
                "LTH supply (no free source found).")
     out.append("")
 
+    lad = snapshot.get("ladder_shadow") or {}
+    grd = snapshot.get("gate_grade") or {}
+
+    out.append("## Rotation ladder (shadow — governs nothing)")
+    out.append("")
+    if lad:
+        out.append("| | |")
+        out.append("|---|---|")
+        out.append("| State | **%s** |" % lad.get("state", "?"))
+        out.append("| T | **%s** |" % ("—" if lad.get("t") is None else lad["t"]))
+        out.append("| Coverage | %.2f%% (floor %.0f%%) |"
+                   % ((lad.get("coverage") or 0) * 100,
+                      (lad.get("coverage_floor") or 0) * 100))
+        out.append("| Measurable | %s |" % ("yes" if lad.get("measurable") else "**no**"))
+        out.append("| Reason | %s |" % lad.get("reason", "—"))
+        out.append("")
+        # The case that matters: frozen while T already clears the next rung.
+        # Without this line a reader sees "state: BTC" and assumes no signal.
+        if not lad.get("measurable") and lad.get("t") is not None:
+            out.append("> Frozen on coverage, **not** on T. T = %s — read the "
+                       "reason above before concluding there is no signal."
+                       % lad["t"])
+            out.append("")
+        out.append("Unsigned strategy update: this ladder does not govern. "
+                   "Pending: %s" % "; ".join(lad.get("pending_decisions") or []))
+    else:
+        out.append("_not computed this run_")
+    out.append("")
+
     out.append("## Gates")
     out.append("")
-    out.append("- **Legacy (authoritative):** %s of %s — %s"
-               % (gl.get("fired"), gl.get("checkable_today"),
-                  ", ".join(gl.get("fired_signals") or []) or "none"))
     mode = "AUTHORITATIVE" if gn.get("authoritative") else "shadow"
     out.append("- **10-dimension (%s):** %s of %s fired, threshold %s → %s"
                % (mode, gn.get("fired"), gn.get("checkable"), gn.get("threshold"),
                   "WOULD FIRE" if gn.get("would_fire") else "would not fire"))
+    if grd:
+        out.append("  - grade **%s** — %s (%s of %s achievable this run)"
+                   % (grd.get("grade"), grd.get("label"), grd.get("score"),
+                      grd.get("possible_this_run")))
+        if grd.get("capped_for_froth_majority"):
+            out.append("  - **capped**: most evidence is froth, so this is a "
+                       "sell-side warning, not a rotation call")
+    sem = gn.get("semantic") or {}
+    if sem.get("reading"):
+        out.append("  - reading: %s" % sem["reading"])
     if gn.get("unavailable"):
         out.append("  - not counted: %s" % ", ".join(gn["unavailable"]))
+    out.append("- **Legacy (retained for continuity):** %s of %s — %s"
+               % (gl.get("fired"), gl.get("checkable_today"),
+                  ", ".join(gl.get("fired_signals") or []) or "none"))
     out.append("")
 
     out.append("## All signals")
