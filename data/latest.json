@@ -1,6 +1,6 @@
 {
   "date": "2026-08-31",
-  "fetched_at": "2026-08-31T17:12:13.675872+00:00",
+  "fetched_at": "2026-08-31T17:15:46.546627+00:00",
   "schema_version": 4,
   "thresholds": {
     "fear_greed_above": 60,
@@ -17,9 +17,9 @@
   },
   "signals": {
     "eth_btc_momentum": {
-      "signal": 5.64,
+      "signal": 5.67,
       "eth_btc_start": 0.029744,
-      "eth_btc_now": 0.031421,
+      "eth_btc_now": 0.031431,
       "window_days": 14,
       "source": "coingecko (keyless)",
       "vote": false,
@@ -31,14 +31,14 @@
       "tier": "A"
     },
     "btc_dominance": {
-      "signal": 59.2,
-      "btc_dominance_pct": 59.2,
+      "signal": 59.21,
+      "btc_dominance_pct": 59.21,
       "eth_dominance_pct": 11.17,
-      "btc_price_usd": 78731,
-      "eth_price_usd": 2470.58,
-      "eth_btc_ratio": 0.03138,
+      "btc_price_usd": 78756,
+      "eth_price_usd": 2471.96,
+      "eth_btc_ratio": 0.03139,
       "source": "coingecko (keyless)",
-      "vote": null,
+      "vote": false,
       "fired_rotation_gate": false,
       "status": "ok",
       "frozen_streak": 0,
@@ -48,7 +48,7 @@
     },
     "alt_dominance": {
       "status": "building",
-      "signal": 29.63,
+      "signal": 29.62,
       "vote": null,
       "days_available": 4,
       "days_required": 30,
@@ -186,30 +186,30 @@
       "tier": "A"
     },
     "alt_funding_rates": {
-      "signal": 2.05,
-      "alt_avg_funding_apr_pct": 2.05,
-      "previous_apr_pct": 2.0,
+      "signal": 2.1,
+      "alt_avg_funding_apr_pct": 2.1,
+      "previous_apr_pct": 2.05,
       "rising": true,
       "per_symbol": {
         "ETHUSDT": {
-          "rate_pct": 0.004802,
+          "rate_pct": 0.004768,
           "settlements_per_day": 3,
-          "apr_pct": 5.26
+          "apr_pct": 5.22
         },
         "SOLUSDT": {
-          "rate_pct": -0.002802,
+          "rate_pct": -0.002698,
           "settlements_per_day": 3,
-          "apr_pct": -3.07
+          "apr_pct": -2.95
         },
         "XRPUSDT": {
-          "rate_pct": 0.000898,
+          "rate_pct": 0.000824,
           "settlements_per_day": 3,
-          "apr_pct": 0.98
+          "apr_pct": 0.9
         },
         "HYPEUSDT": {
-          "rate_pct": 0.004593,
+          "rate_pct": 0.004769,
           "settlements_per_day": 3,
-          "apr_pct": 5.03
+          "apr_pct": 5.22
         }
       },
       "source": "okx (keyless)",
@@ -265,8 +265,8 @@
     "sth_realized_price": {
       "signal": 69979.57,
       "sth_realized_price_usd": 69979.57,
-      "btc_price_usd": 78731,
-      "premium_pct": 12.51,
+      "btc_price_usd": 78756,
+      "premium_pct": 12.54,
       "as_of": "2026-08-28",
       "source": "bgeometrics (keyless)",
       "vote": true,
@@ -360,18 +360,18 @@
     "status": "SHADOW - unsigned strategy update, governs nothing",
     "state": "BTC",
     "previous_state": "BTC",
-    "days_held": 1,
-    "reason": "frozen - coverage 56.25% below the 70% floor",
+    "days_held": 2,
+    "reason": "frozen - coverage 68.75% below the 70% floor",
     "pending_decisions": [
       "Sign the versioned strategy update: 25% ETH cap, four-state ladder",
       "Confirm the six thresholds: 0.55/0.45 ETH, 0.70/0.60 ALT, 2 weeks, 70% floor",
       "Confirm the ladder can never enter USDT on its own authority"
     ],
-    "t": 0.5556,
-    "coverage": 0.5625,
+    "t": 0.4545,
+    "coverage": 0.6875,
     "coverage_floor": 0.7,
     "measurable": false,
-    "measurable_weight": 4.5,
+    "measurable_weight": 5.5,
     "total_weight": 8.0
   }
 }
