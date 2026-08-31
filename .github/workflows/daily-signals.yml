@@ -24,7 +24,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Offline logic tests. Fast, no network, no rate budget consumed.
+  # The fetch job depends on this, so a broken edit cannot write bad data.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run logic tests
+        run: python -m unittest discover -s tests -v
+
   fetch:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

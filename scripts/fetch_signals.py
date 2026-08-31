@@ -35,6 +35,8 @@ from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import dimensions
+import resilience
+import report
 
 UA = {"User-Agent": "signal-pipeline/3.0 (personal use)"}
 TIMEOUT = 20
@@ -53,11 +55,15 @@ THRESHOLDS = {
     "nvt_above_own_90d_avg": True,
     "ssr_falling_over_days": 30,
     "funding_must_be_rising": True,
+    # a source whose as_of is older than this is reported stale, not fresh
+    "max_source_age_days": 3,
 }
 
 CM_API = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics"
 BG_API = "https://bitcoin-data.com/api/v1"
-ALTS = ["ETHUSDT", "SOLUSDT", "XRPUSDT"]
+ALTS = ["ETHUSDT", "SOLUSDT", "XRPUSDT", "HYPEUSDT"]
+# HYPE lists only on some venues; providers return what they have and the
+# average is taken over whatever came back, so a missing symbol is not fatal.
 
 
 def _get(url, headers=None, retries=3):
@@ -299,24 +305,19 @@ def fetch_fear_greed():
 def fetch_social_volume():
     """TRACKED ONLY. LunarCrush - no credible free replacement exists.
 
-    UNVERIFIED: written against the documented v4 shape, never run against a
-    live key. Treat the first keyed run as the test.
+    Deliberately NOT implemented. An earlier version shipped a fetch written
+    from documentation that had never executed against a live key. Code that
+    looks functional but is unverified is worse than an honest stub: it reads
+    as working capability in review, and fails at the first real use.
+
+    To implement: obtain a key, run the call once by hand, confirm the actual
+    response shape, then write the parser against what you observed.
     """
-    key = os.environ.get("LUNARCRUSH_API_KEY")
-    if not key:
-        return {"status": "no_key", "signal": None, "vote": None,
-                "note": "paid-only; the one signal with no free equivalent"}
-    data = _get("https://lunarcrush.com/api4/public/coins/ETH/v1",
-                headers={"Authorization": "Bearer " + key})
-    d = data.get("data", {})
-    return {
-        "signal": d.get("social_volume_24h"),
-        "galaxy_score": d.get("galaxy_score"),
-        "alt_rank": d.get("alt_rank"),
-        "source": "lunarcrush",
-        "vote": None,
-        "note": "UNVERIFIED response shape - confirm on first keyed run",
-    }
+    if os.environ.get("LUNARCRUSH_API_KEY"):
+        return {"status": "not_implemented", "signal": None, "vote": None,
+                "note": "key present but no verified parser exists - see docstring"}
+    return {"status": "no_key", "signal": None, "vote": None,
+            "note": "paid-only; the one signal with no free equivalent"}
 
 
 # ============================================================================
@@ -656,29 +657,40 @@ def main():
         "sth_realized_price": safe_fetch(lambda: fetch_sth_realized_price(btc_price)),
     }
 
+    # Degradation policy, in order: recover what we can, then demote anything
+    # that is not genuinely fresh. Both steps strip votes from stale values,
+    # so nothing old can quietly drive the gate.
+    resilience.carry_forward(signals, previous, today)
+    resilience.check_staleness(signals, today, THRESHOLDS["max_source_age_days"])
+
     dimensions.annotate(signals)
 
     snapshot = {
         "date": today,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
-        "schema_version": 3,
+        "schema_version": 4,
         "thresholds": THRESHOLDS,
         "signals": signals,
+        "health": resilience.health(signals),
         "gate_legacy": legacy_tally(signals),
         "gate_new": dimensions.tally(signals, today),
     }
 
     os.makedirs("data", exist_ok=True)
-    with open("data/signals_" + today + ".json", "w") as f:
+    with open("data/signals_" + today + ".json", "w", encoding="utf-8") as f:
         json.dump(snapshot, f, indent=2)
-    with open("data/signals_history.jsonl", "a") as f:
+    with open("data/signals_history.jsonl", "a", encoding="utf-8") as f:
         f.write(json.dumps(snapshot) + "\n")
+    # fixed-path artefacts so a consumer never has to construct a dated path
+    report.write_all(snapshot)
 
-    broken = [k for k, v in signals.items()
-              if isinstance(v, dict) and v.get("status") in ("error", "http_error")]
-    if broken:
-        print("WARNING: %d source(s) failed: %s" % (len(broken), broken),
-              file=sys.stderr)
+    h = snapshot["health"]
+    if h["failed"]:
+        print("WARNING: %d source(s) failed: %s"
+              % (h["failed"], h["failed_signals"]), file=sys.stderr)
+    if h["stale"]:
+        print("WARNING: %d source(s) stale/carried: %s"
+              % (h["stale"], h["stale_signals"]), file=sys.stderr)
 
     print(json.dumps(snapshot, indent=2))
     return 1 if snapshot["gate_legacy"]["checkable_today"] == 0 else 0

@@ -6,8 +6,13 @@ Runs **06:00 UTC daily**, plus on any push to `scripts/` or the workflow.
 No input required — it has been running unattended since 28 August 2026.
 
 Output:
+- **`data/latest.json`** — most recent snapshot at a fixed path
+- **`data/latest.md`** — the same values rendered for the weekly brief
 - `data/signals_YYYY-MM-DD.json` — one snapshot per day
 - `data/signals_history.jsonl` — append-only log, one line per **run**
+
+Consumers should read `latest.json` / `latest.md`. They never require
+constructing a dated path or knowing whether today's run has happened yet.
 
 ---
 
@@ -127,6 +132,47 @@ Nothing is blocking. In priority order:
 - **HYPE** — funding covers ETH/SOL/XRP only.
 
 ---
+
+## Tests
+
+```bash
+python -m unittest discover -s tests        # offline, ~5ms, no network
+RUN_LIVE_TESTS=1 python -m unittest tests.test_sources   # live contracts
+```
+
+**Offline logic tests** run on every push and gate the fetch job — a broken
+edit cannot write bad data. They cover vote counting, tier rules, adoption
+date behaviour, carry-forward, staleness demotion and report rendering.
+
+**Live contract tests** assert each upstream still returns the exact field the
+parser depends on. Both bugs found in development were silent field-name
+mismatches that returned HTTP 200 and looked healthy:
+
+- BGeometrics SSR returns `ssrStablecoin`, not `ssr`
+- CoinGecko's keyless tier accepts `price_change_percentage=90d`, returns 200,
+  and omits the field
+
+Neither raised an error. Only a live assertion catches that class of failure.
+They run **weekly** rather than per-push, because BGeometrics allows 10
+requests/hour and the pipeline already uses 7.
+
+## Degradation policy
+
+Seven signals come from one provider (BGeometrics). There is no realistic
+second free source for on-chain Bitcoin metrics, so resilience is achieved by
+never silently losing a known value:
+
+1. **Carry-forward** — if a source fails but succeeded within 3 days, the last
+   good value is reused, marked `stale`, with its age.
+2. **Stale values never vote.** A carried value reduces the gate denominator
+   exactly like a missing one. This is the half that matters: carry-forward
+   improves reporting without letting old data drive a decision.
+3. **Freeze detection** — a source can return 200 forever while its `as_of`
+   stops advancing. `as_of` is checked against today independently of HTTP
+   status, and a frozen source is demoted and stripped of its vote.
+
+`health.degraded` flags any run that completed while losing live data. Check
+`failed_signals` before trusting a tally.
 
 ## Operational notes
 

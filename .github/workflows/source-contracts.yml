@@ -1,0 +1,28 @@
+name: Source Contracts
+
+# Live tests that assert each upstream still returns the exact field the
+# parser depends on. Both bugs found in development were silent field-name
+# changes that returned HTTP 200 - only a live assertion catches those.
+#
+# Weekly, NOT per-push: BGeometrics allows 10 requests/hour per IP and the
+# daily pipeline already uses 7. Running these on every push would starve it.
+# Scheduled well away from the 06:00 UTC fetch for the same reason.
+
+on:
+  schedule:
+    - cron: '0 12 * * 0'   # Sundays 12:00 UTC — 6h after the daily fetch
+  workflow_dispatch: {}
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Assert upstream response shapes
+        env:
+          RUN_LIVE_TESTS: '1'
+          COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
+        run: python -m unittest tests.test_sources -v
