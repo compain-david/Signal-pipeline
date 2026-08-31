@@ -3,11 +3,46 @@ SELL GATE - measurability audit and T2 backtest
 
 SHADOW ONLY. This gate governs nothing, exactly like the ladder.
 
+0. TODAY
+--------------------------------------------------------------------
+  as of        : 2026-08-28
+  verdict      : ESCALATE
+  reading      : signals fired but the threshold is unreachable with the inputs that exist - a human must judge this, the gate cannot
+  fired        : sth_rp_weekly_loss
+  readable     : 1 of 3 inputs
+  required     : 2  (denominator policy: fixed)
+  can fire     : NO
+  BTC price    : cache analysis/.cache/btc_price_usd.json
+                 4990 days, 2013-01-01 -> 2026-08-30
+                 last observation trails the system date 2026-08-31
+                 by 1 day.
+
+  Last weekly close 2026-08-28: T2 did not fire.
+  That row is NOT a week-end close. It is the last
+  observation of a week still in progress: 2026-08-28 is a Friday and
+  the week runs to 2026-08-30. The verdict above is therefore
+  computed as of a PARTIAL week. It costs nothing here,
+  because T2 did not fire on that row - and it would cost
+  the weekly convention its whole meaning the first time an
+  unfinished week dips below the cost basis, since a
+  mid-week print is precisely what T2 is defined to reject.
+  Most recent T2 firing: 2026-08-16.
+
+  Note the gap between those two lines. The rule is a 60-day
+  TRAILING window, so a firing that has since recovered keeps
+  counting as one of the 2 votes until it ages out. The
+  verdict is therefore ESCALATE while the latest close is quiet -
+  it is not read off the last print, and anyone expecting it
+  to be is reading a different rule than the one specified.
+
+  These lines are produced by evaluate(), not asserted by prose.
+  The mapping claimed in section 2 is the code path that ran here.
+
 1. CAN THE GATE FIRE?   No. It never could.
 --------------------------------------------------------------------
   lth_distribution_30d         UNMEASURABLE
       rule : long-term-holder supply falling for 30 days or more
-      why  : no free LTH supply series; 4 BGeometrics endpoints 404 (see LTH_ENDPOINTS_TRIED_404). Glassnode/CryptoQuant are paid.
+      why  : no free LTH supply series. `lth-supply` is recorded 404 on BGeometrics (README.md:146); 3 other names are untested guesses. Glassnode/CryptoQuant have it and are paid.
   sth_rp_weekly_loss           MEASURABLE
       rule : BTC weekly close below short-term-holder realised price
       why  : sth_realized_price is in analysis/series.json; BTC price is derived from CoinMetrics CapMrktCurUSD / SplyCur.
@@ -20,39 +55,72 @@ SHADOW ONLY. This gate governs nothing, exactly like the ladder.
   mechanism in this framework that protects capital cannot fire, and
   no run has ever reported that.
 
-  Endpoints tried for T1, all 404: lth-supply, long-term-holder-supply, lth-net-position-change, lth-sth-supply
+  T1 endpoint evidence - no BGeometrics request was made on this run,
+  because the quota is 10/hour per IP and shared with the live fetchers:
+    lth-supply                 404   README.md:146, not re-tested on this run
+    long-term-holder-supply    ?     never tested by anyone here - a guessed name
+    lth-net-position-change    ?     never tested by anyone here - a guessed name
+    lth-sth-supply             ?     never tested by anyone here - a guessed name
 
 2. WHAT THE GATE DOES IN THAT STATE
 --------------------------------------------------------------------
-  Denominator policy: fixed. Required stays 2 of 3.
+  Denominator policy: fixed. Required stays 2 of 3 whatever is readable.
+
+  FLAGGED FOR THE OWNER: this overrides an explicit instruction. The
+  brief said 'if a data series does not exist, say so and reduce the
+  denominator'. The saying-so is done throughout; the reducing is
+  refused, for the reason below. Overrule it by setting
+  DENOMINATOR_POLICY - it is one line, and the tests say which ones
+  break. Raised here so it is a decision, not a discovery.
 
   Rejected alternative - shrink the denominator, as the rotation gate
   and the ladder do. There it is safe: a thin base makes them abstain,
   and abstention costs opportunity. Here, 2 of 3 rescaled onto 1
-  readable input means ONE signal exits the entire book - and the
-  surviving signal is the noisiest of the three, per section 3.
+  readable input asks for 1 - and the signal that survived is the
+  noisiest of the three, per section 3.
+  At 1, one signal exits the entire book.
 
   Also rejected - fire nothing and stay silent. That is the default
   behaviour of a 2-of-3 counter with 1 input, and it renders as 'no
   sell signal', which a reader cannot distinguish from an all-clear.
 
-  What it does instead: four distinct verdicts, so blindness can never
-  be read as calm.
+  What it does instead: 5 distinct verdicts, so neither blindness nor
+  a half-met threshold can be read as calm.
     FIRE         threshold met - de-risk per the strategy
+    ARMED        a signal fired, the threshold was not met, the gate was able to fire - one more distinct signal in the window would fire it
     ESCALATE     signals fired but the threshold is unreachable with the inputs that exist - a human must judge this, the gate cannot
     BLIND_QUIET  nothing fired, but the gate could not have fired even in principle - this is NOT an all-clear
     QUIET        nothing fired, and the gate was able to fire - a real all-clear
 
-  Today, with only T2 readable: T2 quiet -> BLIND_QUIET, T2 firing ->
-  ESCALATE. Never FIRE. Not a sale, not a silence: a human decision,
+  Reachable outcomes with 1 of 3 inputs readable, computed by
+  reachable_verdicts() rather than asserted here: ESCALATE, BLIND_QUIET.
+  Never FIRE. Not a sale and not a silence: a human decision,
   logged as owed.
+  Section 0 is that mapping actually executed on the current data.
 
 3. T2 BACKTEST (the only computable signal)
 --------------------------------------------------------------------
-  Window        : 2022-08-31 -> 2026-08-28
-  Weekly closes : 209
+  Daily overlap : 2022-08-31 -> 2026-08-28   (STH-RP and BTC price both present)
+  Weekly grid   : 2022-09-04 -> 2026-08-28   (209 closes - what the test runs on)
   T2 fired      : 86 weeks (41.1% of all weekly closes)
+  ESCALATE      : 142 weeks (67.9% of all weekly closes)
+
+  That second line is the one to argue with. This module's whole
+  case is that a signal present on 41.1% of weeks must not act
+  alone - and it then routes that same signal to a human on
+  67.9% of weeks. An escalation raised two weeks in three is not
+  an escalation; it is a standing condition, and a human asked to
+  adjudicate it that often will stop reading it. Whatever replaces
+  the 2-of-3 rule has to fix this, not inherit it.
+
   Episodes      : 7 clusters more than 28 days apart
+  Weeks dropped for a pre-Friday last observation: 0 of 209
+    - the guard never bound on this dataset. It removed no noise
+      here; it is insurance against a future gappy feed.
+  Newest row 2026-08-28 is a Friday - the last observation of an UNFINISHED
+    week ending 2026-08-30, not a week-end close. It is counted in the
+    209 above and in section 0's verdict. One partial row cannot
+    move a four-year median; it can move today's answer.
 
   That firing rate is what settles the denominator question. A
   capital-protection trigger that is on nearly half of all weeks
@@ -84,42 +152,112 @@ SHADOW ONLY. This gate governs nothing, exactly like the ladder.
   Read the sign, not the decimal.
 
   Reading it: no edge, and the little there is points the wrong way
-  for a sell trigger. Median BTC return after a T2 week is POSITIVE at
-  all three horizons and at or above the baseline. Selling on T2 alone
-  would mostly have sold into recoveries. The episode bucket (n=7)
-  is printed for completeness only; that many clusters cannot separate
-  skill from luck at any horizon.
+  for a sell trigger. Median BTC return after a T2 week is
+  positive at all three horizons, and against the baseline it lands
+  +0.3 / -0.3 / +2.1 points at 30 / 60 / 90 days - which is to say nowhere.
+  Selling on T2 alone would mostly have sold into
+  recoveries. The episode bucket (n=7) is printed for completeness
+  only; that many clusters cannot separate skill from luck at any
+  horizon.
+
+3B. THE SAME FIRINGS SCORED ON ETH/BTC
+--------------------------------------------------------------------
+  Section 3 measures BTC. The gate does not protect a BTC book: the
+  strategy is ETH/BTC rotation, and T3 is specified on ETH/BTC ETF
+  flows. So the identical firing dates are scored again on the pair
+  actually held (analysis/ethbtc.json). T2 itself stays a BTC rule -
+  STH-RP exists for BTC only (README:147) - so this table asks 'what
+  did the book do after a BTC signal', which is the cost of acting.
+
+  ETH/BTC forward return, horizon 30 days
+    bucket                           n     median  positive
+    T2 fired (every week)           83      -1.9%       37%
+    T2 fired (1st of episode)        7      -9.3%        0%   n<30, not readable
+    BASELINE (every week)          204      -2.6%       37%
+    edge vs baseline, every week    +0.6 points
+
+  ETH/BTC forward return, horizon 60 days
+    bucket                           n     median  positive
+    T2 fired (every week)           79      -5.9%       37%
+    T2 fired (1st of episode)        7     -13.5%        0%   n<30, not readable
+    BASELINE (every week)          200      -5.9%       35%
+    edge vs baseline, every week    +0.0 points
+
+  ETH/BTC forward return, horizon 90 days
+    bucket                           n     median  positive
+    T2 fired (every week)           75      -7.9%       20%
+    T2 fired (1st of episode)        7      -7.0%        0%   n<30, not readable
+    BASELINE (every week)          196      -7.0%       24%
+    edge vs baseline, every week    -1.0 points
+
+  Reading it: the same verdict as section 3, reached from the other
+  side. The MEDIAN ETH/BTC return was negative at every horizon -
+  not every firing, see the positive column above - but it fell
+  just as hard in the baseline, because ETH/BTC fell through nearly
+  the whole window. The edge column is +0.6 / +0.0 / -1.0 points at 30/60/90 days,
+  which is nothing. A gate that sold ETH on T2 would have looked
+  right for four years while adding no information: the drift did
+  the work, not the signal. That is the most dangerous shape a
+  backtest can take, and it is why the baseline row is printed on
+  every table here rather than the firing row alone.
 
 4. T2 AND T3 BARELY CO-EXIST
 --------------------------------------------------------------------
   Drawdown from the running ATH when T2 fired:
     median 45.3%    min 11.6%    max 75.9%
-    firings within 10% of the ATH: 0 of 86
 
-  T2 firing a median 45% off the highs, never once within 10% of them,
-  says what T2 actually is: a capitulation marker, not a distribution
-  marker. That is an argument for keeping it as one vote of three, and
-  the opposite of an argument for promoting it to one of one.
+  T3's '10% below the ATH' is the owner's threshold. The whole
+  co-occurrence conclusion rests on it, so here are its neighbours:
+    threshold   firings within it
+        10%      0 of 86
+        12%      1 of 86
+        15%      5 of 86
+        20%      12 of 86
 
-  T3 requires being within 10% of the ATH; T2 fires deep in drawdowns.
-  Even with a working ETF feed the pair would rarely co-occur, so the
-  2-of-3 rule leans on T1 far harder than its symmetric phrasing
-  admits. Sourcing LTH supply is the highest-value fix available.
+  Read that before quoting the 0. The nearest firing was 11.6% off
+  the high - 1.6 points from counting. 'Never' is true at the 10%
+  definition and false by 20%; the finding is real but it is not
+  robust to the threshold, and a 15% T3 would change the answer.
+
+  So, stated at the precision the data supports: T2 and T3 never
+  co-occurred at the 10% definition; the nearest firing was 11.6%
+  off the high. T2 fires a median 45% off the highs, which says
+  what T2 actually is - a capitulation marker, not a distribution
+  marker. That is an argument for keeping it as one vote of three,
+  and the opposite of an argument for promoting it to one of one.
+
+  T3 requires being near the ATH; T2 fires deep in drawdowns. Even with
+  a working ETF feed the pair would rarely co-occur, so the 2-of-3 rule
+  leans on T1 far harder than its symmetric phrasing admits. Sourcing
+  LTH supply is the highest-value fix available.
 
 5. LIMITS
 --------------------------------------------------------------------
-  - STH-RP history on disk starts 2022-08-31: 209 weeks inside one
-    cycle. Small for a signal meant to fire once or twice per cycle.
+  - STH-RP history on disk starts 2022-08-31: 209 weeks inside one cycle.
+    Small for a signal meant to fire once or twice per cycle.
+  - ASSET MISMATCH. T2 is a BTC rule, T3 is specified on ETH/BTC ETF
+    flows, and the book is an ETH/BTC rotation. Section 3 measures the
+    cost of selling in BTC terms, section 3B in book terms; neither is
+    the whole answer, and the gate itself has never said which asset
+    it is protecting. That is an unresolved specification gap, not a
+    reporting choice - the owner has to name the book.
+  - The newest row on the weekly grid is a PARTIAL week (2026-08-28, a Friday;
+    the week ends 2026-08-30). Section 0's live verdict is computed on it.
   - Overlapping windows; in-sample; descriptive, not predictive.
-  - T1 and T3 appear in no table above. They are not zero, not
+  - T1 and T3 appear in no table anywhere. They are not zero, not
     neutral, not proxied - they are unmeasured.
   - BTC USD is derived CapMrktCurUSD / SplyCur, a daily UTC close; it
     will not tick-match an exchange print.
+  - No BGeometrics endpoint was probed on this run. The T1 404 is
+    quoted from README:146, not measured here.
 
 6. WHAT WOULD CHANGE THE ANSWER
 --------------------------------------------------------------------
-  One sourced LTH supply series makes the gate operable: 2 of 3 becomes
-  reachable, and T1 is the signal T2 most needs beside it - slow,
-  structural, and not a drawdown artefact. That is one purchase, not a
-  redesign. Until it exists the correct output is ESCALATE or
-  BLIND_QUIET, never a number that looks like a decision.
+  1 more sourced input makes the gate operable: 2 of 3 becomes
+  reachable, and LTH supply is the one to buy first - T1 is slow,
+  structural, and not a drawdown artefact, which is exactly what T2
+  is not. That is one purchase, not a redesign. Until it exists the
+  correct output is ESCALATE or BLIND_QUIET, never a number that looks
+  like a decision.
+
+Wrote C:\Users\dcompain\signal-pipeline\analysis\sell_gate.txt

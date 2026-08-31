@@ -12,6 +12,7 @@ on:
     paths:
       - 'scripts/analyse_correlation.py'
       - 'scripts/montecarlo.py'
+      - 'scripts/event_study.py'
 
 permissions:
   contents: write
@@ -36,6 +37,54 @@ jobs:
           mkdir -p analysis
           python scripts/analyse_correlation.py | tee analysis/correlation.txt
           python scripts/montecarlo.py 1000 | tee analysis/montecarlo.txt
+          # Offline: reads analysis/ethbtc.json and analysis/series.json and
+          # fetches nothing, so it costs no BGeometrics budget. SHADOW ONLY -
+          # regenerating evidence in CI does not make it govern anything.
+          #
+          # No `> analysis/...` and no tee: the script opens that same path
+          # itself, so a shell redirect would have two writers on one file.
+          # It also prints a trailing 'written to ...' line that belongs in
+          # the run log, not in the committed report.
+          #
+          # Limit worth naming: this triggers on event_study.py, not on the
+          # threshold constants it prints. A retune of dimensions.py or
+          # ladder.py will NOT regenerate the report here - tests/
+          # test_event_study.py is what fails when those drift.
+          #
+          # analysis/.cache/ is gitignored, so a fresh checkout has no F&G
+          # archive and the study honestly reports 1 of 9 readable Tier A
+          # signals where a local run reports 2. The study must not fetch,
+          # so the workflow repopulates the cache instead. alternative.me is
+          # keyless and is NOT the rate-limited BGeometrics host.
+          #
+          # An earlier version ended that curl with `|| true` and ran the
+          # study regardless, which reintroduced the exact failure the curl
+          # exists to prevent: on an alternative.me outage the study emits
+          # the honest 11.1% report and the commit step below pushes it over
+          # the committed 22.2% one - silently, and green. A failed or empty
+          # fetch therefore SKIPS the report and leaves the committed one
+          # standing. The rest of the analysis job still runs; only the
+          # output that depends on the missing input is withheld.
+          #
+          # The parse check is not belt-and-braces: curl exits 0 on an HTTP
+          # error page written to the output file, and load_fear_greed would
+          # then read zero days and report F&G absent with no reason.
+          mkdir -p analysis/.cache
+          if curl -sS --max-time 30 -o analysis/.cache/fng.json \
+               'https://api.alternative.me/fng/?limit=0&format=json' \
+             && python -c "import json,sys; sys.exit(0 if json.load(open('analysis/.cache/fng.json')).get('data') else 1)"; then
+            python scripts/event_study.py
+          else
+            echo "::warning::F&G fetch failed or returned no data - skipping event_study.py so a thinner report cannot overwrite the committed one"
+            rm -f analysis/.cache/fng.json
+          fi
+          # Named rather than left implicit: analysis/.cache/btc_price_usd.json
+          # is gitignored too and is also an input - the second leg of the
+          # STH-RP vote - and nothing here repopulates it. It costs no printed
+          # number today, because series.json holds no 2021 STH cost basis for
+          # a close to be compared against, so the CI report and a local one
+          # agree. The day that backfill lands they stop agreeing, and this
+          # step has to fetch the close before the study runs.
       - name: Commit results
         if: always()
         run: |

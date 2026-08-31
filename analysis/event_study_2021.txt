@@ -7,8 +7,21 @@ SHADOW ONLY, governs nothing. Offline: every number below comes from analysis/. 
 ----------------------------------------------------------------------------------------------------------------------
    analysis/ethbtc.json        2799 days, 2019-01-01 -> 2026-08-30
    analysis/series.json        1456 days, 2022-08-31 -> 2026-08-28
-   analysis/.cache F&G         3130 days, 2018-02-01 -> 2026-08-31 (2 cache file(s))
+   analysis/.cache F&G         3130 days, 2018-02-01 -> 2026-08-31 (2 cache file(s), 0 disagreements)
    analysis/.cache BTC close   4990 days, 2013-01-01 -> 2026-08-30
+
+   WHERE THESE INPUTS LIVE - the headline below depends on a GITIGNORED directory
+   ------------------------------------------------------------------------------------------------------------------
+     analysis/ethbtc.json and analysis/series.json are COMMITTED, so every reader sees the same bytes.
+     The Fear & Greed archive and the daily BTC close are read from analysis/.cache/, which is not -
+     .gitignore excludes that directory. A fresh checkout has neither file, and this same study then measures
+     1 of 9 readable Tier A signals instead of the 2 of 9 printed in section 2 below - a worse
+     number for a reason that has nothing to do with 2021. Both figures are measured, not quoted.
+     CI repopulates F&G by curl from alternative.me (keyless, and NOT the rate-limited BGeometrics
+     host) before running, and skips this report entirely if that fetch fails, so a thin run cannot
+     overwrite a committed thicker one. Nothing repopulates the BTC close: it is a local-only input
+     today. That costs no printed number yet, because series.json holds no 2021 STH cost basis to
+     pair it with - but it would the day a backfill lands, and that is when the workflow must fetch it.
 
    Reach back into 2021:
      ethbtc.json                          365 of 365 days
@@ -20,8 +33,19 @@ SHADOW ONLY, governs nothing. Offline: every number below comes from analysis/. 
      series.json stablecoin_supply_ratio    0 of 365 days   (series starts 2022-08-31)
      series.json sth_realized_price         0 of 365 days   (series starts 2022-08-31)
 
+   HOW eth_btc_momentum IS RECONSTRUCTED HERE - read before trusting any MOM cell below
+   ------------------------------------------------------------------------------------------------------------------
+     This study computes it as the percent change from t-14 CALENDAR days to t, straight off
+     analysis/ethbtc.json. The LIVE fetcher instead takes CoinGecko's last 14 DAILY POINTS.
+     Same rule, different bytes: the builder of ethbtc.json is not in this repo, so its venue and its
+     close convention are unverified here, and a missing day shifts CoinGecko's window but not this one.
+     Consequence: a reading within a point or two of the 10.0% threshold is AMBIGUOUS, not decided.
+     Readings far from the threshold are safe; the FIRE/. call on a near-threshold day is not.
+
 2. TIER A SIGNAL AVAILABILITY IN 2021  ->  2 of 9 = 22.2%
 ----------------------------------------------------------------------------------------------------------------------
+   PRESENT/ABSENT is MEASURED by scanning both windows for a scoreable vote, not read off a list.
+   The bracketed reason is the only hand-written part; if a backfill lands, the verdict moves on its own.
    eth_btc_momentum         MOM   PRESENT  reconstructed from data on disk
    fear_greed               FNG   PRESENT  reconstructed from data on disk
    mvrv_z_score             MVRVZ ABSENT   [NO HISTORY ON DISK] analysis/series.json starts 2022-08-31; BGeometrics backfill costs 10 req/hour
@@ -35,6 +59,24 @@ SHADOW ONLY, governs nothing. Offline: every number below comes from analysis/. 
    The gate needs 5 of 9 Tier A signals to fire (dimensions.TIER_A_THRESHOLD).
    With 2 scoreable, the maximum possible 2021 tally is 2. The threshold is unreachable by ARITHMETIC,
    not by market conditions. No 2021 reading, however extreme, could have fired this gate.
+
+2R. LADDER ROTATION SIGNAL AVAILABILITY IN 2021  ->  1 of 8
+----------------------------------------------------------------------------------------------------------------------
+   The ladder's rotation axis is NOT the gate's Tier A set: three of these signals are not Tier A at all
+   and appear nowhere in section 2. Same measured discipline - PRESENT means ladder._measurable said so.
+   eth_btc_momentum         D1 w1.0   PRESENT  reconstructed from data on disk
+   alt_dominance            D1 w0.5   ABSENT   [NO HISTORY ON DISK] derived from the same point-in-time /global call
+   alt_funding_rates        D7 w1.0   ABSENT   [NO HISTORY ON DISK] the four funding fetchers are point-in-time only. HYPE also did not list until Nov 2024, so the basket itself is not the 2021 basket
+   altseason_index          D1 w0.5   ABSENT   [NO HISTORY ON DISK] needs CoinGecko price_change_percentage=90d, which the keyless tier silently omits - the signal degrades to needs_key TODAY, let alone in 2021
+   btc_dominance            D1 w1.0   ABSENT   [NO HISTORY ON DISK] CoinGecko /global is point-in-time only; this repo archives no dominance history
+   eth_etf_flows            D5 w1.0   ABSENT   [DID NOT EXIST] US spot ETH ETFs began trading 2024-07-23 - no provider can produce a 2021 value
+   exchange_netflows        D9 w1.0   ABSENT   [NO HISTORY ON DISK] point-in-time fetch only, no archive in this repo
+   stablecoin_supply_ratio  D6 w1.0   ABSENT   [NO HISTORY ON DISK] analysis/series.json starts 2022-08-31
+
+   Weights are dimension-CAPPED, so the count above does not equal the coverage figure: D1 holds four
+   signals summing to 3.0 and caps at 3.0. Best coverage measured on any day of either window:
+     ladder.compute_t coverage            1.0000 of 7.0000 capped units = 14.3%   (floor 70%)
+   That is where the FROZEN column in every dated row below comes from.
 
 ======================================================================================================================
 WINDOW A : February 2021 altseason and the run into the May top   (2021-02-01 -> 2021-05-31)
@@ -54,7 +96,10 @@ WINDOW A : February 2021 altseason and the run into the May top   (2021-02-01 ->
    4A. DATED TABLE - value, fire, and the coverage that existed AT THE TIME
    ------------------------------------------------------------------------------------------------------------------
         --   no data for that signal on that date. The column is kept so the blanks are countable.
-        ?    value readable but not scoreable - its vote rule needs a reference window not archived here.
+        ?    value readable but NOT scoreable, for one of two reasons named in the row's note:
+             its reference window is missing (NVT needs the 90 prior days, SSR the value 30 days back)
+             or its second leg is missing (STH-RP needs a BTC close). MVRV Z needs neither and scores
+             from a bare value, so a '?' can never appear in its column.
         gate%   Tier A signals carrying a readable vote, out of 9.
         ladd%   ladder.compute_t coverage in dimension-capped units; FROZEN when below the 70% floor.
 
@@ -220,7 +265,10 @@ WINDOW B : September - November 2021 altseason   (2021-09-01 -> 2021-11-30)
    4B. DATED TABLE - value, fire, and the coverage that existed AT THE TIME
    ------------------------------------------------------------------------------------------------------------------
         --   no data for that signal on that date. The column is kept so the blanks are countable.
-        ?    value readable but not scoreable - its vote rule needs a reference window not archived here.
+        ?    value readable but NOT scoreable, for one of two reasons named in the row's note:
+             its reference window is missing (NVT needs the 90 prior days, SSR the value 30 days back)
+             or its second leg is missing (STH-RP needs a BTC close). MVRV Z needs neither and scores
+             from a bare value, so a '?' can never appear in its column.
         gate%   Tier A signals carrying a readable vote, out of 9.
         ladd%   ladder.compute_t coverage in dimension-capped units; FROZEN when below the 70% floor.
 
@@ -370,9 +418,11 @@ WINDOW B : September - November 2021 altseason   (2021-09-01 -> 2021-11-30)
        a threshold of 5, 'did not fire' carries no information about 2021 whatsoever. Nobody should
        read the empty column as the gate correctly staying out.
 
-   (b) The ladder is frozen every day of the year, so ladder.py's Monte Carlo - block-bootstrapped from
-       1366 days starting 2022-11 - has never been exposed to a 2021-shaped move. Its 0.00 whipsaws/yr
-       is a property of the 14-day dwell, not evidence it survives an altseason it has never seen.
+   (b) The ladder is frozen every day of the year, so ladder.py's Monte Carlo has never been exposed to
+       a 2021-shaped move. It is block-bootstrapped from 1366 real days starting 2022-11-29 - derived here
+       by running montecarlo.to_votes over analysis/series.json, the same input the Monte Carlo reads.
+       Its 0.00 whipsaws/yr is a property of the 14-day dwell, not evidence it survives an altseason
+       it has never seen.
 
    (c) One Tier A signal, eth_etf_flows, is PERMANENTLY unscoreable against 2021: US spot ETH ETFs did
        not exist until 2024-07-23. No backfill fixes that. Any future claim that this framework 'would
@@ -384,7 +434,23 @@ WINDOW B : September - November 2021 altseason   (2021-09-01 -> 2021-11-30)
 
    The cheapest fix is bounded: a BGeometrics backfill of MVRV Z, NVT, SSR and STH-RP to 2021, plus a
    daily BTC close for the STH comparison. At 10 requests/hour that is hours of waiting, not weeks of
-   work, and it would take the scoreable count from 2 to 6 of 9 - enough to make the gate's threshold
-   reachable and the ladder's floor testable. Funding and netflow archives are the harder half and may
-   not be free at all; if they are not, say so in the spec rather than leaving them as assumed evidence.
+   work. What it would buy is MEASURED here, not estimated: the same availability scan is re-run against
+   a COPY of series.json filled with placeholder values across both windows and the 90 prior days NVT's
+   average needs. Only the SHAPE of that history decides the answer; no placeholder value is printed,
+   scored, or carried into any figure above. An earlier version of this report asserted a number here
+   that the module itself refuted, which is why it is computed now.
+
+     scoreable Tier A signals today                 2 of 9
+     after the backfill above                       6 of 9   (gained: mvrv_z_score, nvt, stablecoin_supply_ratio, sth_realized_price)
+     gate threshold                                 5 of 9 needed  ->  REACHABLE
+     best ladder coverage after the backfill        28.6% vs the 70% floor  ->  STILL FROZEN, the floor stays untestable
+
+   Read that second pair carefully: the prescribed backfill is a GATE fix, not a ladder fix. Of the four
+   series it adds, only SSR sits on the rotation axis, so ladder coverage rises but stays under the
+   70% floor and the ladder would still have been frozen through both altseasons. Making the floor
+   testable against 2021 needs the rotation-only signals - dominance history and a funding archive -
+   which is the harder and possibly unpurchasable half.
+
+   Funding, netflow and dominance archives are the half that may not be purchasable at any price. If they
+   are not, the spec should say so, rather than leaving them standing as assumed evidence.
 
