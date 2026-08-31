@@ -36,3 +36,27 @@ sth_realized_price           0.04     0.26    -0.09    -0.02     0.23     1.00
   Old gate: 4 of 7, where dominance/ASI/TOTAL3 were ~1 observation
   in 3 slots, so 7 slots held roughly 5 independent signals.
   4 of 7 therefore demanded ~2.86 independent observations.
+
+
+=== HISTORICAL DRY RUN ===
+
+  Testable Tier A signals: 4 (MVRV Z, NVT, F&G, SSR)
+  Days evaluated: 1366  (2022-11-29 -> 2026-08-28)
+
+  votes   days     %% of history
+    0      193    14.1%  #######
+    1      670    49.0%  ########################
+    2      431    31.6%  ###############
+    3       72     5.3%  ##
+    4        0     0.0%  
+
+  Cumulative 'would fire at >= N of 4':
+    >=1 of 4 :  85.9% of days
+    >=2 of 4 :  36.8% of days
+    >=3 of 4 :   5.3% of days
+    >=4 of 4 :   0.0% of days
+
+  Scaled to the 9-signal gate (same per-signal hit rate):
+    4 of 9 ~ 1.8 of 4 -> would fire ~36.8% of days
+    5 of 9 ~ 2.2 of 4 -> would fire ~5.3% of days
+    6 of 9 ~ 2.7 of 4 -> would fire ~5.3% of days
