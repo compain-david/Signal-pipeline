@@ -1,6 +1,6 @@
 {
   "date": "2026-08-31",
-  "fetched_at": "2026-08-31T17:01:41.667515+00:00",
+  "fetched_at": "2026-08-31T17:08:08.869997+00:00",
   "schema_version": 4,
   "thresholds": {
     "fear_greed_above": 60,
@@ -17,9 +17,9 @@
   },
   "signals": {
     "eth_btc_momentum": {
-      "signal": 5.64,
+      "signal": 5.61,
       "eth_btc_start": 0.029744,
-      "eth_btc_now": 0.031422,
+      "eth_btc_now": 0.031414,
       "window_days": 14,
       "source": "coingecko (keyless)",
       "vote": false,
@@ -34,9 +34,9 @@
       "signal": 59.2,
       "btc_dominance_pct": 59.2,
       "eth_dominance_pct": 11.17,
-      "btc_price_usd": 78631,
-      "eth_price_usd": 2469.15,
-      "eth_btc_ratio": 0.0314,
+      "btc_price_usd": 78694,
+      "eth_price_usd": 2469.99,
+      "eth_btc_ratio": 0.03139,
       "source": "coingecko (keyless)",
       "vote": null,
       "fired_rotation_gate": false,
@@ -173,30 +173,30 @@
       "tier": "A"
     },
     "alt_funding_rates": {
-      "signal": 1.8,
-      "alt_avg_funding_apr_pct": 1.8,
-      "previous_apr_pct": 1.67,
+      "signal": 2.0,
+      "alt_avg_funding_apr_pct": 2.0,
+      "previous_apr_pct": 1.8,
       "rising": true,
       "per_symbol": {
         "ETHUSDT": {
-          "rate_pct": 0.004945,
+          "rate_pct": 0.004982,
           "settlements_per_day": 3,
-          "apr_pct": 5.41
+          "apr_pct": 5.46
         },
         "SOLUSDT": {
-          "rate_pct": -0.00272,
+          "rate_pct": -0.002721,
           "settlements_per_day": 3,
           "apr_pct": -2.98
         },
         "XRPUSDT": {
-          "rate_pct": 0.000987,
+          "rate_pct": 0.000991,
           "settlements_per_day": 3,
-          "apr_pct": 1.08
+          "apr_pct": 1.09
         },
         "HYPEUSDT": {
-          "rate_pct": 0.003381,
+          "rate_pct": 0.004025,
           "settlements_per_day": 3,
-          "apr_pct": 3.7
+          "apr_pct": 4.41
         }
       },
       "source": "okx (keyless)",
@@ -252,8 +252,8 @@
     "sth_realized_price": {
       "signal": 69979.57,
       "sth_realized_price_usd": 69979.57,
-      "btc_price_usd": 78631,
-      "premium_pct": 12.36,
+      "btc_price_usd": 78694,
+      "premium_pct": 12.45,
       "as_of": "2026-08-28",
       "source": "bgeometrics (keyless)",
       "vote": true,
