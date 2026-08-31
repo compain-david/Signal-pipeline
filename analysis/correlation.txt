@@ -1,0 +1,38 @@
+Fetching histories...
+  mvrv_z_score             1461 points
+  nvt                      1459 points
+  stablecoin_supply_ratio  1461 points
+  sth_realized_price       1459 points
+  puell_multiple           1461 points
+  fear_greed               3130 points
+
+Common dates: 1456  (2022-08-31 -> 2026-08-28)
+
+=== Correlation of DAILY CHANGES ===
+
+                         fear_gre mvrv_z_s      nvt puell_mu stableco sth_real
+fear_greed                   1.00     0.05    -0.02    -0.06    -0.05     0.04
+mvrv_z_score                 0.05     1.00     0.01     0.02     0.79     0.26
+nvt                         -0.02     0.01     1.00     0.04    -0.01    -0.09
+puell_multiple              -0.06     0.02     0.04     1.00     0.03    -0.02
+stablecoin_supply_ratio     -0.05     0.79    -0.01     0.03     1.00     0.23
+sth_realized_price           0.04     0.26    -0.09    -0.02     0.23     1.00
+
+=== Independence ===
+
+  signals measured          : 6
+  mean |correlation|        : 0.114
+  max  |correlation|        : 0.786
+  eigenvalues               : 1.92, 1.11, 1.00, 0.94, 0.82, 0.21
+  EFFECTIVE independent     : 4.79 of 6  (80%)
+
+=== Threshold implication ===
+
+  Each vote carries ~0.80 independent observations.
+    4 of 9  ->  3.19 independent observations required
+    5 of 9  ->  3.99 independent observations required
+    6 of 9  ->  4.79 independent observations required
+
+  Old gate: 4 of 7, where dominance/ASI/TOTAL3 were ~1 observation
+  in 3 slots, so 7 slots held roughly 5 independent signals.
+  4 of 7 therefore demanded ~2.86 independent observations.
