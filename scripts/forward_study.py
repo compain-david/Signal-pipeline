@@ -188,10 +188,22 @@ def assess(label, fires, rule, fwds, universe):
            "episodes": len(eps), "top3_share": share,
            "biggest": biggest, "edges": {}}
 
+    # The baseline MUST be restricted to the signal's own date range.
+    #
+    # Without this the study compares 2022-2026 signal days against a
+    # 2019-2026 baseline, and any signal whose series starts in 2022 inherits
+    # the difference between the two periods as fake "edge". ETH/BTC behaved
+    # very differently before and after 2022, so that mismatch alone was
+    # enough to make well-built rules look inverted. Every edge below is
+    # therefore measured against the same window the signal could see.
+    lo, hi = (min(fires), max(fires)) if fires else (None, None)
+    row["window"] = (lo, hi)
+    in_window = [d for d in universe if lo and lo <= d <= hi]
+
     for h, fwd in fwds.items():
         vals = [fwd[d] for d in fires if d in fwd]
-        base = [fwd[d] for d in universe if d in fwd]
-        if len(vals) < 30 or not base:
+        base = [fwd[d] for d in in_window if d in fwd]
+        if len(vals) < 30 or len(base) < 30:
             row["edges"][h] = None
             continue
         med = median(vals)

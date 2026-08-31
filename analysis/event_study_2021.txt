@@ -11,14 +11,14 @@ SHADOW ONLY, governs nothing. Offline: every number below comes from analysis/. 
    analysis/.cache BTC close   4990 days, 2013-01-01 -> 2026-08-30
 
    Reach back into 2021:
-     ethbtc.json                        365 of 365 days
-     .cache fear_greed                  365 of 365 days
-     series.json fear_greed               0 of 365 days   (series starts 2022-08-31)
-     series.json mvrv_z_score             0 of 365 days   (series starts 2022-08-31)
-     series.json nvt                      0 of 365 days   (series starts 2022-08-31)
-     series.json puell_multiple           0 of 365 days   (series starts 2022-08-31)
-     series.json stablecoin_supply_ratio   0 of 365 days   (series starts 2022-08-31)
-     series.json sth_realized_price       0 of 365 days   (series starts 2022-08-31)
+     ethbtc.json                          365 of 365 days
+     .cache fear_greed                    365 of 365 days
+     series.json fear_greed                 0 of 365 days   (series starts 2022-08-31)
+     series.json mvrv_z_score               0 of 365 days   (series starts 2022-08-31)
+     series.json nvt                        0 of 365 days   (series starts 2022-08-31)
+     series.json puell_multiple             0 of 365 days   (series starts 2022-08-31)
+     series.json stablecoin_supply_ratio    0 of 365 days   (series starts 2022-08-31)
+     series.json sth_realized_price         0 of 365 days   (series starts 2022-08-31)
 
 2. TIER A SIGNAL AVAILABILITY IN 2021  ->  2 of 9 = 22.2%
 ----------------------------------------------------------------------------------------------------------------------

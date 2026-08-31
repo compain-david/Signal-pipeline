@@ -8,15 +8,15 @@ Etude forward ETH/BTC - tous les signaux disponibles
 
   signal                  n   ep.       30j       60j       90j   hit90
   --------------------------------------------------------------------
-  F&G > 80              149    13     +1.1     +8.9    +12.9     66%
+  F&G > 80              149    13     +1.0     +8.4    +11.1     66%
   F&G < 20              270    23     +2.6     +7.5     +6.0     52%
-  F&G > 60              901    25     +2.1     +2.7     +2.8     48%
-  puell < 0.5            38     5     +0.9     +3.5     -0.2     26%
-  puell > 1.0           755    11     -1.2     -1.1     -1.6     31%
-  nvt > moy 90j         593     8     -0.8     -2.4     -4.0     21%
-  mvrv_z > 2            414     5     -1.6     -3.8     -4.4     38%
-  ssr baisse 30j        644    23     -2.0     -2.9     -5.6     15%
-  mvrv_z > 3             32     3     -6.2    -20.6    -30.9      0%
+  F&G > 60              901    25     +2.2     +2.8     +2.7     48%
+  puell > 1.0           755    11     -0.4     +1.1     +1.8     31%
+  mvrv_z > 2            414     5     +2.2     +0.3     +0.6     38%
+  puell < 0.5            38     5     -0.6     +1.2     +0.2     26%
+  nvt > moy 90j         593     8     +0.1     -0.2     -0.6     21%
+  ssr baisse 30j        644    23     -1.4     -1.1     -2.5     15%
+  mvrv_z > 3             32     3     -2.3    -11.8    -15.7      0%
 
 
 === INDEPENDANCE : regularite ou souvenir ? ===
@@ -51,14 +51,14 @@ Etude forward ETH/BTC - tous les signaux disponibles
   sans qu un tiers du bucket domine.
 
   F&G < 20           queue opposee, controle  REJETE - 65% du bucket dans 3 episodes
-  F&G > 60           regle Tier A actuelle    PAS D EDGE - +2.8 pts a 90j
+  F&G > 60           regle Tier A actuelle    PAS D EDGE - +2.7 pts a 90j
   F&G > 80           seuil propose            REJETE - 73% du bucket dans 3 episodes
   mvrv_z > 2         variante moins stricte   REJETE - 97% du bucket dans 3 episodes
   mvrv_z > 3         regle Tier A actuelle    REJETE - 3 episodes seulement
   nvt > moy 90j      regle Tier A actuelle    REJETE - 76% du bucket dans 3 episodes
   puell < 0.5        bande d achat            REJETE - 92% du bucket dans 3 episodes
   puell > 1.0        sortie de bande          REJETE - 99% du bucket dans 3 episodes
-  ssr baisse 30j     regle Tier A actuelle    PAS D EDGE - -5.6 pts a 90j
+  ssr baisse 30j     regle Tier A actuelle    PAS D EDGE - -2.5 pts a 90j
 
 
 Rappel : fenetres chevauchantes, etude entierement in-sample,

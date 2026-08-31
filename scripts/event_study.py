@@ -512,14 +512,14 @@ def render(prices, series, fng, notes, btc=None):
 
     add("")
     add("   Reach back into %s:" % STUDY_YEAR)
-    add("     %-34s %3d of 365 days" % (
+    add("     %-36s %3d of 365 days" % (
         "ethbtc.json", len([d for d in prices if d.startswith(STUDY_YEAR)])))
-    add("     %-34s %3d of 365 days" % (
+    add("     %-36s %3d of 365 days" % (
         ".cache fear_greed",
         len([d for d in fng if d.startswith(STUDY_YEAR)])))
     for name, data in sorted(series.items()):
         n = len([d for d in data if d.startswith(STUDY_YEAR)])
-        add("     %-34s %3d of 365 days   (series starts %s)"
+        add("     %-36s %3d of 365 days   (series starts %s)"
             % ("series.json " + name, n, min(data) if data else "-"))
 
     # -- 2. availability ---------------------------------------------------
