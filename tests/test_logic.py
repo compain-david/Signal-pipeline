@@ -198,3 +198,64 @@ class TestReport(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestWeightedGrade(unittest.TestCase):
+    """Weights come from measured correlation, so the grade must reflect that
+    a correlated pair is not two independent observations."""
+
+    def _sig(self, fired):
+        return {k: {"vote": (k in fired), "status": "ok"}
+                for k in dimensions.TIER_A_SIGNALS}
+
+    def test_correlated_pair_is_discounted(self):
+        """MVRV Z + SSR correlate 0.79 - together they must score under 2.0."""
+        g = dimensions.grade(self._sig({"mvrv_z_score",
+                                        "stablecoin_supply_ratio"}))
+        self.assertLess(g["score"], 2.0)
+        self.assertAlmostEqual(g["score"], 1.6, places=1)
+
+    def test_two_independent_signals_score_full(self):
+        g = dimensions.grade(self._sig({"fear_greed", "exchange_netflows"}))
+        self.assertAlmostEqual(g["score"], 2.0, places=1)
+
+    def test_no_votes_grades_d(self):
+        self.assertEqual(dimensions.grade(self._sig(set()))["grade"], "D")
+
+    def test_froth_alone_can_never_reach_a_strong_grade(self):
+        """Structural property worth asserting: all three froth signals
+        together weigh 2.8, below band B (3.5). Froth alone cannot produce a
+        strong reading no matter what - the cap below is a second defence,
+        not the only one."""
+        froth = {k for k, v in dimensions.SEMANTIC.items() if v == "froth"}
+        g = dimensions.grade(self._sig(froth))
+        self.assertLess(g["score"], dimensions.GRADE_BANDS[1][1])
+        self.assertIn(g["grade"], ("C", "D"))
+
+    def test_froth_majority_caps_a_mixed_grade(self):
+        """The case the cap actually exists for: enough total evidence to
+        reach B, but most of it is froth - so it must not read as permission
+        to rotate."""
+        froth = {k for k, v in dimensions.SEMANTIC.items() if v == "froth"}
+        g = dimensions.grade(self._sig(froth | {"exchange_netflows"}))
+        self.assertGreaterEqual(g["score"], dimensions.GRADE_BANDS[1][1])
+        self.assertTrue(g["capped_for_froth_majority"])
+        self.assertEqual(g["grade"], "C")
+
+    def test_rotation_majority_is_not_capped(self):
+        rot = {k for k, v in dimensions.SEMANTIC.items() if v == "rotation"}
+        g = dimensions.grade(self._sig(rot))
+        self.assertFalse(g["capped_for_froth_majority"])
+        self.assertIn(g["grade"], ("A", "B"))
+
+    def test_possible_shrinks_when_signals_unavailable(self):
+        """Denominator honesty must survive into the grade."""
+        s = self._sig({"fear_greed"})
+        s["nvt"]["vote"] = None
+        s["eth_etf_flows"]["vote"] = None
+        g = dimensions.grade(s)
+        self.assertLess(g["possible_this_run"], g["max_possible"])
+
+    def test_weights_cover_every_tier_a_signal(self):
+        for k in dimensions.TIER_A_SIGNALS:
+            self.assertIn(k, dimensions.WEIGHTS, k)

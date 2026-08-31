@@ -31,7 +31,70 @@ Tiers:
 ADOPTED_FROM = "2026-08-30"
 
 # Tier A votes required for the gate to fire.
+#
+# OPEN DECISION - the value below is UNCHANGED from the spec and is NOT a
+# recommendation. The spec justified 5/9 as "proportionally similar to the old
+# 4/7" (56% vs 57%). That reasoning does not hold, because the MECE rework
+# removed correlation: under the old gate, dominance / ASI / TOTAL3 fired
+# together, so 4/7 was frequently 2 independent observations wearing 3 hats.
+# Now that the base is genuinely independent, 5 of 9 is a MATERIALLY HARDER
+# bar than 4 of 7 was, not an equivalent one.
+#
+# Holding the ratio constant while de-correlating the base silently tightened
+# the gate. That may be what you want - a stricter gate on cleaner signals is
+# defensible - but it should be chosen, not inherited. Two coherent options:
+#
+#   5  keep the tightened bar deliberately (current)
+#   4  restore roughly the old effective difficulty on the new clean base
+#
+# `effective_difficulty` in the tally output reports the implied strictness
+# each run so the choice can be made on evidence rather than arithmetic.
 TIER_A_THRESHOLD = 5
+
+# Semantic split. A 5-of-9 built from froth signals means "late cycle, think
+# about selling"; the same 5 built from rotation signals means "rotate now".
+# The old tally could not tell these apart - both counted identically.
+#
+# PROVISIONAL classification: defensible defaults, not rules you set. The
+# ambiguous one is alt funding - building alt leverage is the rotation
+# happening, but elevated funding is also a top signal. Classified as rotation
+# here because dimension 7 is explicitly alt-SPECIFIC positioning.
+SEMANTIC = {
+    "eth_btc_momentum": "rotation",
+    "eth_etf_flows": "rotation",
+    "stablecoin_supply_ratio": "rotation",
+    "alt_funding_rates": "rotation",
+    "exchange_netflows": "rotation",
+    "sth_realized_price": "rotation",
+    "mvrv_z_score": "froth",
+    "nvt": "froth",
+    "fear_greed": "froth",
+}
+
+# How many consecutive runs a signal may stay frozen before it is excluded
+# from the composite entirely rather than merely not voting.
+#
+# Why this exists: the brief carried Puell as a frozen estimate for four
+# editions while the real value was one free HTTP call away. A rule that
+# freezes an unverifiable value indefinitely converts "unknown" into
+# "unchanged" - and "BUY held" reads as a buy vote. Freezing must be a
+# temporary state with an expiry, not a stable one.
+MAX_FROZEN_RUNS = 3
+
+# Demotion criteria - the counterpart to the spec's promotion path.
+# The spec lets tracked signals earn Tier A through Part D/E evidence but
+# never says how a Tier A signal LOSES its vote. Pi Cycle was handled ad hoc.
+# These are enforced by reporting, not automatically: the pipeline surfaces
+# the evidence, a human makes the call in the monthly edition.
+DEMOTION_CRITERIA = {
+    "availability": "Tier A signal unavailable in >30% of runs over 30 days "
+                    "- it cannot carry a vote it rarely casts",
+    "frozen": "excluded as frozen more than twice in a quarter",
+    "mechanism_failure": "documented mechanism break, as with Pi Cycle in "
+                         "Oct 2025 - demote to Tier B confirm-only, do not delete",
+    "no_evidence": "no Part D/E evidence it predicts anything the naive "
+                   "baseline does not, after 2 full cycles in Tier A",
+}
 
 DIMENSION_NAMES = {
     1: "relative_momentum",
@@ -82,6 +145,102 @@ assert len(TIER_A_SIGNALS) == 9, (
 )
 
 
+# -- WEIGHTED GRADING --------------------------------------------------------
+#
+# An N-of-M gate throws away information: it cannot tell a strong reading from
+# a marginal one, and it lets correlated signals stack. Weights fix both.
+#
+# Weights are derived from MEASURED correlation, not judgement. See
+# scripts/analyse_correlation.py, run on 1456 common days (2022-08 -> 2026-08):
+#
+#   mean |correlation| across signals : 0.114   (genuinely independent)
+#   BUT mvrv_z_score <-> ssr          : 0.79    (NOT independent)
+#
+# That pair is the MECE model's blind spot. MVRV Z sits in dimension 2
+# (Valuation) and SSR in dimension 6 (Liquidity), so the framework treats them
+# as separate evidence - but both carry BTC market cap in the numerator, so
+# they move together mechanically. Two votes, roughly one observation.
+#
+# For a correlated pair, joint independent content is 1 + sqrt(1 - r^2):
+#   1 + sqrt(1 - 0.79^2) = 1.61 independent observations, not 2.
+# Split evenly, each gets 1.61/2 ~ 0.8.
+WEIGHTS = {
+    "mvrv_z_score": 0.8,             # correlated 0.79 with SSR
+    "stablecoin_supply_ratio": 0.8,  # correlated 0.79 with MVRV Z
+    "eth_btc_momentum": 1.0,
+    "nvt": 1.0,
+    "fear_greed": 1.0,
+    "eth_etf_flows": 1.0,
+    "alt_funding_rates": 1.0,
+    "exchange_netflows": 1.0,
+    "sth_realized_price": 1.0,
+}
+
+# Grade bands, in INDEPENDENT-EVIDENCE units (not raw vote counts).
+# Maximum achievable with all 9 available is 8.6.
+#
+# Anchored on the old gate: 4 of 7 correlated signals demanded ~2.86
+# independent observations. That is the historical bar this framework
+# operated on, so it anchors the bottom of B rather than the top.
+GRADE_BANDS = [
+    ("A", 5.0, "very strong - broad independent agreement"),
+    ("B", 3.5, "strong - clears the old 4-of-7 bar with margin"),
+    ("C", 2.0, "watch - some evidence, below the historical bar"),
+    ("D", 0.0, "no actionable signal"),
+]
+
+
+def grade(signals):
+    """Score the gate in independent-evidence units and assign a letter.
+
+    Returns both the score and what was achievable this run, because a 3.5
+    out of 8.6 possible and a 3.5 out of 4.0 possible are different situations
+    and a bare letter would hide that.
+    """
+    scored, possible = 0.0, 0.0
+    rotation_score, froth_score = 0.0, 0.0
+
+    for key in TIER_A_SIGNALS:
+        payload = signals.get(key)
+        w = WEIGHTS.get(key, 1.0)
+        if not isinstance(payload, dict) or payload.get("vote") is None:
+            continue  # unavailable: reduces what was achievable, votes nothing
+        possible += w
+        if payload.get("vote"):
+            scored += w
+            if SEMANTIC.get(key) == "rotation":
+                rotation_score += w
+            elif SEMANTIC.get(key) == "froth":
+                froth_score += w
+
+    letter, label = "D", GRADE_BANDS[-1][2]
+    for name, floor, desc in GRADE_BANDS:
+        if scored >= floor:
+            letter, label = name, desc
+            break
+
+    # A grade earned mostly on froth is a sell-side warning, not a rotation
+    # call. Cap the rotation grade so the letter cannot be read as permission.
+    capped = False
+    if letter in ("A", "B") and froth_score > rotation_score:
+        letter, capped = "C", True
+        label = "capped at C - majority of evidence is froth, not rotation"
+
+    return {
+        "grade": letter,
+        "label": label,
+        "score": round(scored, 2),
+        "possible_this_run": round(possible, 2),
+        "max_possible": round(sum(WEIGHTS.values()), 2),
+        "rotation_score": round(rotation_score, 2),
+        "froth_score": round(froth_score, 2),
+        "capped_for_froth_majority": capped,
+        "bands": {n: f for n, f, _ in GRADE_BANDS},
+        "note": "independent-evidence units, correlation-adjusted. The old "
+                "4-of-7 gate demanded ~2.86 units; that anchors band B.",
+    }
+
+
 def annotate(signals):
     """Stamp each signal with its dimension and tier, in place."""
     for key, payload in signals.items():
@@ -130,6 +289,31 @@ def tally(signals, today):
     active = today >= ADOPTED_FROM
     would_fire = len(fired) >= TIER_A_THRESHOLD
 
+    # Split the verdict by what the firing signals actually claim, so a
+    # threshold hit on froth is never mistaken for a hit on rotation.
+    by_semantic = {"rotation": [], "froth": []}
+    for key in fired:
+        bucket = SEMANTIC.get(key)
+        if bucket:
+            by_semantic[bucket].append(key)
+
+    available = {"rotation": 0, "froth": 0}
+    for key in checkable:
+        bucket = SEMANTIC.get(key)
+        if bucket:
+            available[bucket] += 1
+
+    reading = "no signal"
+    if fired:
+        n_rot, n_fro = len(by_semantic["rotation"]), len(by_semantic["froth"])
+        if n_rot and not n_fro:
+            reading = "rotation-favourable only"
+        elif n_fro and not n_rot:
+            reading = "late-cycle froth only - this is a SELL-side warning, "\
+                      "not a rotation signal"
+        else:
+            reading = "mixed: %d rotation, %d froth" % (n_rot, n_fro)
+
     return {
         "authoritative": active,
         "adopted_from": ADOPTED_FROM,
@@ -140,6 +324,22 @@ def tally(signals, today):
         "fired_signals": fired,
         "unavailable": unavailable,
         "tier_b_confirming": confirms,
+        "semantic": {
+            "rotation_fired": by_semantic["rotation"],
+            "froth_fired": by_semantic["froth"],
+            "rotation_available": available["rotation"],
+            "froth_available": available["froth"],
+            "reading": reading,
+        },
+        "effective_difficulty": {
+            "threshold": TIER_A_THRESHOLD,
+            "of_checkable": len(checkable),
+            "pct_required": (round(TIER_A_THRESHOLD / len(checkable) * 100, 1)
+                             if checkable else None),
+            "note": "the old 4/7 gate was ~57% of a CORRELATED base; this is "
+                    "the same ratio on an independent base, which is stricter "
+                    "- see TIER_A_THRESHOLD for the open decision",
+        },
         "note": (
             "AUTHORITATIVE - this gate governs" if active else
             "SHADOW MODE - logged only, legacy gate governs until " + ADOPTED_FROM

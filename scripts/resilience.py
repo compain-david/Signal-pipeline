@@ -122,13 +122,53 @@ def carry_forward(signals, previous, today):
     return signals
 
 
+def track_freeze_streak(signals, previous, max_frozen_runs):
+    """Count consecutive runs a signal has been stale, and expire it.
+
+    Freezing must be a temporary state, not a stable one. The brief carried
+    Puell as a frozen estimate for four editions while the real value was one
+    free HTTP call away - and a frozen "BUY held" reads as a buy vote in the
+    composite. Past the limit a signal is excluded outright rather than
+    quietly persisting as an unchanged reading.
+
+    Run AFTER carry_forward and check_staleness, so it sees final statuses.
+    """
+    prev_signals = (previous or {}).get("signals") or {}
+
+    for key, payload in signals.items():
+        if not isinstance(payload, dict):
+            continue
+
+        prior_streak = 0
+        prior = prev_signals.get(key)
+        if isinstance(prior, dict):
+            prior_streak = prior.get("frozen_streak") or 0
+
+        is_frozen = payload.get("status") in ("stale", "carried_forward")
+        streak = prior_streak + 1 if is_frozen else 0
+        payload["frozen_streak"] = streak
+
+        if streak > max_frozen_runs:
+            payload["status"] = "frozen_excluded"
+            payload["excluded_from_composite"] = True
+            payload["signal"] = None  # stop presenting a value nobody measured
+            payload["vote"] = None
+            payload["note"] = (
+                "frozen for %d consecutive runs (limit %d) - EXCLUDED from the "
+                "composite. An unverifiable value must not persist as an "
+                "unchanged reading. Resolve the source or drop the dimension."
+                % (streak, max_frozen_runs)
+            )
+    return signals
+
+
 def health(signals):
     """Summarise source health so a silent partial failure is visible.
 
     `degraded` is the flag worth alerting on: it means the run technically
     succeeded while losing live data.
     """
-    ok, failed, stale, unavailable = [], [], [], []
+    ok, failed, stale, unavailable, frozen = [], [], [], [], []
     for key, payload in signals.items():
         if not isinstance(payload, dict):
             continue
@@ -139,6 +179,8 @@ def health(signals):
             failed.append(key)
         elif status in ("stale", "carried_forward"):
             stale.append(key)
+        elif status == "frozen_excluded":
+            frozen.append(key)
         else:
             unavailable.append(key)  # no_key / no_api / not_implemented
 
@@ -148,9 +190,11 @@ def health(signals):
         "failed": len(failed),
         "stale": len(stale),
         "structurally_unavailable": len(unavailable),
+        "frozen": len(frozen),
         "failed_signals": failed,
         "stale_signals": stale,
-        "degraded": bool(failed or stale),
+        "frozen_excluded": frozen,
+        "degraded": bool(failed or stale or frozen),
         "note": "degraded=true means the run completed but lost live data - "
                 "check failed_signals before trusting the tally",
     }

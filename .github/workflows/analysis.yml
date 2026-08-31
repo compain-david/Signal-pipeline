@@ -1,0 +1,43 @@
+name: Correlation Analysis
+
+# Runs the independence analysis and commits its output. On a runner because
+# BGeometrics rate-limits per IP (10/hour) and a local dev machine is usually
+# out of budget after a pipeline run. Results are versioned so the threshold
+# decision rests on committed evidence, not a number in a chat log.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/analyse_correlation.py'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: analysis
+  cancel-in-progress: false
+
+jobs:
+  analyse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run analysis
+        run: |
+          mkdir -p analysis
+          python scripts/analyse_correlation.py | tee analysis/correlation.txt
+      - name: Commit results
+        if: always()
+        run: |
+          git config user.name "signal-pipeline-bot"
+          git config user.email "actions@github.com"
+          git add analysis/
+          if git diff --staged --quiet; then echo "no change"; exit 0; fi
+          git commit -m "Correlation analysis $(date -u +%Y-%m-%d)"
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

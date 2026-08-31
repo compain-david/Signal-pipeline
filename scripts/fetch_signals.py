@@ -662,6 +662,8 @@ def main():
     # so nothing old can quietly drive the gate.
     resilience.carry_forward(signals, previous, today)
     resilience.check_staleness(signals, today, THRESHOLDS["max_source_age_days"])
+    # freezing is a temporary state with an expiry, never a stable one
+    resilience.track_freeze_streak(signals, previous, dimensions.MAX_FROZEN_RUNS)
 
     dimensions.annotate(signals)
 
@@ -674,6 +676,7 @@ def main():
         "health": resilience.health(signals),
         "gate_legacy": legacy_tally(signals),
         "gate_new": dimensions.tally(signals, today),
+        "gate_grade": dimensions.grade(signals),
     }
 
     os.makedirs("data", exist_ok=True)
