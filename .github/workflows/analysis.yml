@@ -29,6 +29,9 @@ jobs:
           python-version: '3.11'
       - name: Run analysis
         run: |
+          # pipefail matters: without it `tee` masks a python crash and the
+          # step passes green while writing a truncated file.
+          set -o pipefail
           mkdir -p analysis
           python scripts/analyse_correlation.py | tee analysis/correlation.txt
       - name: Commit results

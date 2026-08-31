@@ -236,8 +236,6 @@ def main():
     return 0
 
 
-if __name__ == "__main__":
-    sys.exit(main())
 
 
 # -- historical dry run ------------------------------------------------------
@@ -286,3 +284,6 @@ def backtest(sources, dates):
         n = sum(c for v, c in fired_counts.items() if v >= math.ceil(equiv))
         print("    %d of 9 ~ %.1f of 4 -> would fire ~%.1f%% of days"
               % (thr, equiv, n / total * 100))
+
+if __name__ == "__main__":
+    sys.exit(main())
