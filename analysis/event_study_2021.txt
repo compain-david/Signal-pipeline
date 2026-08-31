@@ -8,7 +8,7 @@ SHADOW ONLY, governs nothing. Offline: every number below comes from analysis/. 
    analysis/ethbtc.json        2799 days, 2019-01-01 -> 2026-08-30
    analysis/series.json        1456 days, 2022-08-31 -> 2026-08-28
    analysis/.cache F&G         3130 days, 2018-02-01 -> 2026-08-31 (2 cache file(s), 0 disagreements)
-   analysis/.cache BTC close   4990 days, 2013-01-01 -> 2026-08-30
+   analysis/.cache BTC close   MISSING: no btc_price*.json in /home/runner/work/Signal-pipeline/Signal-pipeline/scripts/../analysis/.cache
 
    WHERE THESE INPUTS LIVE - the headline below depends on a GITIGNORED directory
    ------------------------------------------------------------------------------------------------------------------
@@ -441,7 +441,7 @@ WINDOW B : September - November 2021 altseason   (2021-09-01 -> 2021-11-30)
    that the module itself refuted, which is why it is computed now.
 
      scoreable Tier A signals today                 2 of 9
-     after the backfill above                       6 of 9   (gained: mvrv_z_score, nvt, stablecoin_supply_ratio, sth_realized_price)
+     after the backfill above                       5 of 9   (gained: mvrv_z_score, nvt, stablecoin_supply_ratio)
      gate threshold                                 5 of 9 needed  ->  REACHABLE
      best ladder coverage after the backfill        28.6% vs the 70% floor  ->  STILL FROZEN, the floor stays untestable
 
