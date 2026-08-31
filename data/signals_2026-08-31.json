@@ -1,6 +1,6 @@
 {
   "date": "2026-08-31",
-  "fetched_at": "2026-08-31T17:36:59.071110+00:00",
+  "fetched_at": "2026-08-31T18:46:11.087953+00:00",
   "schema_version": 4,
   "thresholds": {
     "fear_greed_above": 60,
@@ -17,9 +17,9 @@
   },
   "signals": {
     "eth_btc_momentum": {
-      "signal": 5.59,
-      "eth_btc_start": 0.029672,
-      "eth_btc_now": 0.031332,
+      "signal": 6.17,
+      "eth_btc_start": 0.02964,
+      "eth_btc_now": 0.031469,
       "window_days": 14,
       "source": "coingecko (keyless)",
       "vote": false,
@@ -31,12 +31,12 @@
       "tier": "A"
     },
     "btc_dominance": {
-      "signal": 59.19,
-      "btc_dominance_pct": 59.19,
-      "eth_dominance_pct": 11.16,
-      "btc_price_usd": 78611,
-      "eth_price_usd": 2463.73,
-      "eth_btc_ratio": 0.03134,
+      "signal": 59.22,
+      "btc_dominance_pct": 59.22,
+      "eth_dominance_pct": 11.15,
+      "btc_price_usd": 79100,
+      "eth_price_usd": 2478.3,
+      "eth_btc_ratio": 0.03133,
       "source": "coingecko (keyless)",
       "vote": false,
       "fired_rotation_gate": false,
@@ -48,7 +48,7 @@
     },
     "alt_dominance": {
       "status": "building",
-      "signal": 29.65,
+      "signal": 29.63,
       "vote": null,
       "days_available": 4,
       "days_required": 30,
@@ -137,6 +137,19 @@
       "dimension_name": "valuation",
       "tier": "track"
     },
+    "nupl": {
+      "signal": 0.3281,
+      "as_of": "2026-08-30",
+      "source": "bgeometrics (keyless)",
+      "vote": null,
+      "note": "risk axis; euphoria historically above ~0.75, capitulation below 0",
+      "status": "ok",
+      "source_age_days": 1,
+      "frozen_streak": 0,
+      "dimension": 2,
+      "dimension_name": "valuation",
+      "tier": "track"
+    },
     "fear_greed": {
       "signal": 62,
       "classification": "Greed",
@@ -186,40 +199,49 @@
       "tier": "A"
     },
     "alt_funding_rates": {
-      "signal": 2.63,
-      "alt_avg_funding_apr_pct": 2.63,
-      "previous_apr_pct": 2.1,
-      "rising": true,
+      "signal": 4.12,
+      "alt_avg_funding_apr_pct": 4.12,
+      "btc_funding_apr_pct": 7.01,
+      "alt_minus_btc_apr_pct": -2.89,
+      "previous_apr_pct": 2.63,
+      "previous_spread_pct": null,
+      "rising": null,
       "per_symbol": {
         "ETHUSDT": {
-          "rate_pct": 0.004806,
+          "rate_pct": 0.004756,
           "settlements_per_day": 3,
-          "apr_pct": 5.26
+          "apr_pct": 5.21
         },
         "SOLUSDT": {
-          "rate_pct": -0.002769,
+          "rate_pct": -0.001252,
           "settlements_per_day": 3,
-          "apr_pct": -3.03
+          "apr_pct": -1.37
         },
         "XRPUSDT": {
-          "rate_pct": 0.000689,
+          "rate_pct": 0.001545,
           "settlements_per_day": 3,
-          "apr_pct": 0.75
+          "apr_pct": 1.69
         },
         "HYPEUSDT": {
-          "rate_pct": 0.006881,
+          "rate_pct": 0.01,
           "settlements_per_day": 3,
-          "apr_pct": 7.53
+          "apr_pct": 10.95
+        },
+        "BTCUSDT": {
+          "rate_pct": 0.006403,
+          "settlements_per_day": 3,
+          "apr_pct": 7.01
         }
       },
+      "reference_leg": "BTCUSDT",
       "source": "okx (keyless)",
       "fallbacks_tried": [
         "_funding_binance: HTTP Error 451: ",
         "_funding_bybit: HTTP Error 403: Forbidden"
       ],
-      "vote": true,
+      "vote": null,
       "fired_rotation_gate": false,
-      "note": "vote needs positive AND rising; None on the first run of a fresh history log, when there is no prior value",
+      "note": "gate votes on absolute alt APR; the LADDER reads the alt-minus-BTC spread, which isolates alt-specific positioning from market-wide leverage",
       "status": "ok",
       "frozen_streak": 0,
       "dimension": 7,
@@ -265,8 +287,8 @@
     "sth_realized_price": {
       "signal": 69979.57,
       "sth_realized_price_usd": 69979.57,
-      "btc_price_usd": 78611,
-      "premium_pct": 12.33,
+      "btc_price_usd": 79100,
+      "premium_pct": 13.03,
       "as_of": "2026-08-28",
       "source": "bgeometrics (keyless)",
       "vote": true,
@@ -280,7 +302,7 @@
     }
   },
   "health": {
-    "ok": 13,
+    "ok": 14,
     "failed": 0,
     "stale": 0,
     "structurally_unavailable": 4,
@@ -303,48 +325,47 @@
   "gate_new": {
     "authoritative": true,
     "adopted_from": "2026-08-30",
-    "fired": 4,
-    "checkable": 8,
+    "fired": 3,
+    "checkable": 7,
     "threshold": 5,
     "would_fire": false,
     "fired_signals": [
       "fear_greed",
-      "alt_funding_rates",
       "exchange_netflows",
       "sth_realized_price"
     ],
     "unavailable": [
-      "eth_etf_flows"
+      "eth_etf_flows",
+      "alt_funding_rates"
     ],
     "tier_b_confirming": [],
     "semantic": {
       "rotation_fired": [
-        "alt_funding_rates",
         "exchange_netflows",
         "sth_realized_price"
       ],
       "froth_fired": [
         "fear_greed"
       ],
-      "rotation_available": 5,
+      "rotation_available": 4,
       "froth_available": 3,
-      "reading": "mixed: 3 rotation, 1 froth"
+      "reading": "mixed: 2 rotation, 1 froth"
     },
     "effective_difficulty": {
       "threshold": 5,
-      "of_checkable": 8,
-      "pct_required": 62.5,
+      "of_checkable": 7,
+      "pct_required": 71.4,
       "note": "the old 4/7 gate was ~57% of a CORRELATED base; this is the same ratio on an independent base, which is stricter - see TIER_A_THRESHOLD for the open decision"
     },
     "note": "AUTHORITATIVE - this gate governs"
   },
   "gate_grade": {
-    "grade": "B",
-    "label": "strong - clears the old 4-of-7 bar with margin",
-    "score": 4.0,
-    "possible_this_run": 7.6,
+    "grade": "C",
+    "label": "watch - some evidence, below the historical bar",
+    "score": 3.0,
+    "possible_this_run": 6.6,
     "max_possible": 8.6,
-    "rotation_score": 3.0,
+    "rotation_score": 2.0,
     "froth_score": 1.0,
     "capped_for_froth_majority": false,
     "bands": {
@@ -360,18 +381,19 @@
     "status": "SHADOW - unsigned strategy update, governs nothing",
     "state": "BTC",
     "previous_state": "BTC",
-    "days_held": 3,
-    "reason": "frozen - coverage 68.75% below the 70% floor",
+    "days_held": 4,
+    "reason": "frozen - coverage 57.14% below the 70% floor",
     "pending_decisions": [
       "Sign the versioned strategy update: 25% ETH cap, four-state ladder",
       "Confirm the six thresholds: 0.55/0.45 ETH, 0.70/0.60 ALT, 2 weeks, 70% floor",
       "Confirm the ladder can never enter USDT on its own authority"
     ],
-    "t": 0.4545,
-    "coverage": 0.6875,
+    "t": 0.25,
+    "coverage": 0.5714,
     "coverage_floor": 0.7,
     "measurable": false,
-    "measurable_weight": 5.5,
-    "total_weight": 8.0
+    "measurable_weight": 4.0,
+    "total_weight": 7.0,
+    "basis": "dimension-capped (coverage and T share one basis)"
   }
 }
