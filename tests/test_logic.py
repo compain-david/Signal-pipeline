@@ -265,17 +265,40 @@ class TestWeightedGrade(unittest.TestCase):
 class TestLadder(unittest.TestCase):
     """The mechanics the Monte Carlo showed matter: hysteresis, dwell, floor."""
 
+    # Build payloads the ladder's OWN rules can read. Deliberately carries no
+    # `vote` field at all: if any ladder code path still consulted `vote`,
+    # every test in this class would break rather than silently pass.
+    def _payload(self, key, fires):
+        base = {"status": "ok", "source_age_days": 0}
+        if key == "eth_btc_momentum":
+            base["signal"] = 20.0 if fires else 1.0        # rule: > 10
+        elif key == "btc_dominance":
+            base["signal"] = 50.0 if fires else 59.0       # rule: < 54
+        elif key == "alt_dominance":
+            base.update(signal=30.0, ref_30d=20.0 if fires else 40.0)
+        elif key == "altseason_index":
+            base["signal"] = 80.0 if fires else 50.0       # rule: > 75
+        elif key == "eth_etf_flows":
+            base["signal"] = 1.0 if fires else -1.0        # rule: > 0
+        elif key == "stablecoin_supply_ratio":
+            base.update(signal=5.0, ref_value=9.0 if fires else 1.0)
+        elif key == "alt_funding_rates":
+            base.update(signal=0.0, alt_minus_btc_apr_pct=1.0 if fires else -1.0,
+                        rising=True)
+        elif key == "exchange_netflows":
+            base["signal"] = -100.0 if fires else 100.0    # rule: < 0
+        else:
+            base["signal"] = 1.0 if fires else 0.0
+        return base
+
     def _ok(self, votes):
-        s = {}
-        for k in ladder.ROTATION_SIGNALS:
-            s[k] = {"status": "ok", "vote": votes.get(k, False),
-                    "source_age_days": 0}
-        return s
+        return {k: self._payload(k, votes.get(k, False))
+                for k in ladder.ROTATION_SIGNALS}
 
     def test_stale_source_is_not_measurable(self):
         s = self._ok({})
-        s["fear_greed"]["source_age_days"] = 99
-        self.assertFalse(ladder._measurable(s["fear_greed"]))
+        s["btc_dominance"]["source_age_days"] = 99
+        self.assertFalse(ladder._measurable(s["btc_dominance"], "btc_dominance"))
 
     def test_coverage_floor_freezes_rather_than_deciding(self):
         s = self._ok({})
@@ -335,6 +358,7 @@ class TestLadder(unittest.TestCase):
         try:
             ladder.ROTATION_SIGNALS["extra_momentum"] = (1, 3.0)
             s = self._ok({k: True for k in ladder.ROTATION_SIGNALS})
+            ladder.LADDER_RULES["extra_momentum"] = lambda p: True
             info = ladder.compute_t(s)
             # every signal fires, so T must still be 1.0 - capping rescales
             # numerator and denominator together, it does not distort the ratio
@@ -345,6 +369,7 @@ class TestLadder(unittest.TestCase):
         finally:
             ladder.ROTATION_SIGNALS.clear()
             ladder.ROTATION_SIGNALS.update(original)
+            ladder.LADDER_RULES.pop("extra_momentum", None)
 
     def test_evaluate_never_governs(self):
         self.assertFalse(ladder.evaluate(self._ok({}))["governs"])
@@ -372,13 +397,22 @@ class TestTrackedVotesDoNotLeak(unittest.TestCase):
         s["btc_dominance"] = {"vote": True, "status": "ok"}
         self.assertEqual(dimensions.grade(s)["score"], 0.0)
 
-    def test_but_it_does_count_for_ladder_coverage(self):
-        s = {k: {"status": "ok", "vote": False, "source_age_days": 0}
+    def test_ladder_coverage_ignores_vote_entirely(self):
+        """This test previously asserted that removing `vote` lowered ladder
+        coverage - i.e. it encoded the coupling. That coupling is the defect
+        that has now been removed, so the assertion is inverted: coverage
+        depends on the readable `signal`, and `vote` is irrelevant to it."""
+        s = {k: {"status": "ok", "signal": 0.0, "source_age_days": 0}
              for k in ladder.ROTATION_SIGNALS}
-        with_vote = ladder.compute_t(s)["coverage"]
+        s["alt_dominance"]["ref_30d"] = 1.0
+        s["stablecoin_supply_ratio"]["ref_value"] = 1.0
+        s["alt_funding_rates"].update({"alt_minus_btc_apr_pct": 1.0,
+                                       "rising": True})
+        base = ladder.compute_t(s)["coverage"]
         s["btc_dominance"]["vote"] = None
-        without = ladder.compute_t(s)["coverage"]
-        self.assertGreater(with_vote, without)
+        self.assertEqual(ladder.compute_t(s)["coverage"], base)
+        s["btc_dominance"]["signal"] = None
+        self.assertLess(ladder.compute_t(s)["coverage"], base)
 
 
 class TestReportSurfacesDecisionInstruments(unittest.TestCase):
@@ -427,3 +461,78 @@ class TestReportSurfacesDecisionInstruments(unittest.TestCase):
 
     def test_ladder_states_it_governs_nothing(self):
         self.assertIn("does not govern", report.render_markdown(self._snap()))
+
+
+class TestLadderBasisInvariant(unittest.TestCase):
+    """Coverage and T must be computed on the SAME set.
+
+    They were not: coverage used raw weights, T used dimension-capped ones.
+    With D1 weighing exactly its cap the two agreed by coincidence, so the
+    divergence was invisible and would only have surfaced when a fifth
+    momentum signal was added. These tests fail if they drift apart again.
+    """
+
+    def _all_ok(self, votes=None):
+        votes = votes or {}
+        out = {}
+        for k in ladder.ROTATION_SIGNALS:
+            p = {"status": "ok", "source_age_days": 0, "signal": 0.0}
+            p.update(votes.get(k, {}))
+            out[k] = p
+        return out
+
+    def test_full_coverage_is_exactly_one(self):
+        """Every signal readable must give coverage 1.0 on any basis."""
+        s = self._all_ok({"alt_dominance": {"ref_30d": 1.0},
+                          "stablecoin_supply_ratio": {"ref_value": 1.0},
+                          "alt_funding_rates": {"alt_minus_btc_apr_pct": 1.0,
+                                                "rising": True}})
+        self.assertAlmostEqual(ladder.compute_t(s)["coverage"], 1.0)
+
+    def test_coverage_denominator_matches_t_denominator(self):
+        """measurable_weight must be the numerator of coverage, so that
+        coverage * total == measurable on one shared basis."""
+        s = self._all_ok({"alt_dominance": {"ref_30d": 1.0},
+                          "stablecoin_supply_ratio": {"ref_value": 1.0},
+                          "alt_funding_rates": {"alt_minus_btc_apr_pct": 1.0,
+                                                "rising": True}})
+        s["eth_etf_flows"]["status"] = "no_api"
+        i = ladder.compute_t(s)
+        # places=3: compute_t rounds its outputs to 4dp, so the identity holds
+        # to rounding, not to machine precision. Asserting tighter would test
+        # the rounding, not the invariant.
+        self.assertAlmostEqual(i["coverage"] * i["total_weight"],
+                               i["measurable_weight"], places=3)
+
+    def test_invariant_holds_when_a_dimension_is_overweight(self):
+        """The case that would have exposed the original bug."""
+        original = dict(ladder.ROTATION_SIGNALS)
+        try:
+            ladder.ROTATION_SIGNALS["extra_momentum"] = (1, 3.0)
+            s = self._all_ok({"alt_dominance": {"ref_30d": 1.0},
+                              "stablecoin_supply_ratio": {"ref_value": 1.0},
+                              "alt_funding_rates": {"alt_minus_btc_apr_pct": 1.0,
+                                                    "rising": True}})
+            s["extra_momentum"] = {"status": "ok", "source_age_days": 0,
+                                   "signal": 0.0}
+            i = ladder.compute_t(s)
+            self.assertAlmostEqual(i["coverage"] * i["total_weight"],
+                                   i["measurable_weight"], places=6)
+        finally:
+            ladder.ROTATION_SIGNALS.clear()
+            ladder.ROTATION_SIGNALS.update(original)
+
+    def test_ladder_never_reads_vote(self):
+        """Reading `vote` would re-couple the ladder to the gate's thresholds.
+        A signal with a vote but no readable value must count as unmeasurable."""
+        s = self._all_ok()
+        s["btc_dominance"] = {"status": "ok", "source_age_days": 0,
+                              "signal": None, "vote": True}
+        self.assertFalse(ladder._measurable(s["btc_dominance"], "btc_dominance"))
+
+    def test_ladder_thresholds_are_its_own(self):
+        """btc_dominance below 54 fires for the ladder regardless of `vote`."""
+        p = {"status": "ok", "source_age_days": 0, "signal": 50.0, "vote": False}
+        self.assertTrue(ladder.LADDER_RULES["btc_dominance"](p))
+        p["signal"] = 59.0
+        self.assertFalse(ladder.LADDER_RULES["btc_dominance"](p))

@@ -63,6 +63,10 @@ THRESHOLDS = {
 CM_API = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics"
 BG_API = "https://bitcoin-data.com/api/v1"
 ALTS = ["ETHUSDT", "SOLUSDT", "XRPUSDT", "HYPEUSDT"]
+# BTC is fetched alongside as the REFERENCE leg, never averaged into the
+# alt basket. Absolute alt funding is contaminated by market-wide leverage;
+# the alt-minus-BTC spread isolates positioning specific to alts.
+FUNDING_REF = "BTCUSDT"
 # HYPE lists only on some venues; providers return what they have and the
 # average is taken over whatever came back, so a missing symbol is not fatal.
 
@@ -338,6 +342,24 @@ def fetch_puell_multiple():
     }
 
 
+def fetch_nupl():
+    """Net Unrealised Profit/Loss - RISK axis, not rotation.
+
+    Feeds the six-dimension composite and the sell gate's context. Kept off
+    the ladder deliberately: it answers "should we be exposed at all", the
+    same question as MVRV Z, and putting it on the rotation axis would repeat
+    the double-count the two-axis split exists to remove.
+    """
+    d = _bg("nupl/last")
+    return {
+        "signal": round(float(d["nupl"]), 4),
+        "as_of": d.get("d"),
+        "source": "bgeometrics (keyless)",
+        "vote": None,
+        "note": "risk axis; euphoria historically above ~0.75, capitulation below 0",
+    }
+
+
 def fetch_mayer_multiple():
     """TRACKED ONLY - second valuation basis, no vote."""
     d = _bg("mayer-multiple/last")
@@ -436,12 +458,13 @@ def fetch_stablecoin_supply_ratio():
 def _funding_binance():
     data = _get("https://fapi.binance.com/fapi/v1/premiumIndex")
     rates = {d["symbol"]: float(d["lastFundingRate"]) for d in data}
-    return {s: rates[s] for s in ALTS if s in rates}, "binance", 3
+    want = ALTS + [FUNDING_REF]
+    return {s: rates[s] for s in want if s in rates}, "binance", 3
 
 
 def _funding_bybit():
     out = {}
-    for sym in ALTS:
+    for sym in ALTS + [FUNDING_REF]:
         d = _get("https://api.bybit.com/v5/market/tickers"
                  "?category=linear&symbol=" + sym)
         lst = d.get("result", {}).get("list") or []
@@ -452,7 +475,7 @@ def _funding_bybit():
 
 def _funding_okx():
     out = {}
-    for sym in ALTS:
+    for sym in ALTS + [FUNDING_REF]:
         inst = sym.replace("USDT", "-USDT-SWAP")
         d = _get("https://www.okx.com/api/v5/public/funding-rate?instId=" + inst)
         rows = d.get("data") or []
@@ -467,7 +490,7 @@ def _funding_hyperliquid():
     NOTE: funding settles HOURLY here, not 8-hourly."""
     meta, ctxs = _post("https://api.hyperliquid.xyz/info",
                        {"type": "metaAndAssetCtxs"})
-    wanted = {s.replace("USDT", ""): s for s in ALTS}
+    wanted = {s.replace("USDT", ""): s for s in ALTS + [FUNDING_REF]}
     out = {}
     for i, coin in enumerate(meta.get("universe", [])):
         name = coin.get("name")
@@ -501,31 +524,50 @@ def fetch_funding_rates(previous=None):
                 }
                 for s, r in rates.items()
             }
+            alt_syms = [s for s in per_sym if s != FUNDING_REF]
+            if not alt_syms:
+                errors.append(provider.__name__ + ": no alt legs")
+                continue
             avg_apr = round(
-                sum(v["apr_pct"] for v in per_sym.values()) / len(per_sym), 2
+                sum(per_sym[s]["apr_pct"] for s in alt_syms) / len(alt_syms), 2
             )
+            btc_apr = per_sym.get(FUNDING_REF, {}).get("apr_pct")
+            # The SPREAD is the ladder's signal. Absolute alt funding rises
+            # whenever market-wide leverage rises, so it cannot distinguish
+            # "alts specifically are being bid" from "everything is". The
+            # spread against BTC does exactly that, and costs one extra symbol
+            # on a call already being made.
+            spread = None if btc_apr is None else round(avg_apr - btc_apr, 2)
 
-            prev_apr = None
+            prev_apr = prev_spread = None
             if previous:
                 pf = previous.get("signals", {}).get("alt_funding_rates", {})
                 if isinstance(pf, dict):
                     prev_apr = pf.get("alt_avg_funding_apr_pct")
+                    prev_spread = pf.get("alt_minus_btc_apr_pct")
 
-            rising = None if prev_apr is None else avg_apr > prev_apr
-            vote = None if rising is None else (avg_apr > 0 and rising)
+            # `rising` tracks the SPREAD, because that is what the ladder reads
+            rising = None if (spread is None or prev_spread is None) \
+                else spread > prev_spread
+            vote = None if rising is None else (spread > 0 and rising)
 
             return {
                 "signal": avg_apr,
                 "alt_avg_funding_apr_pct": avg_apr,
+                "btc_funding_apr_pct": btc_apr,
+                "alt_minus_btc_apr_pct": spread,
                 "previous_apr_pct": prev_apr,
+                "previous_spread_pct": prev_spread,
                 "rising": rising,
                 "per_symbol": per_sym,
+                "reference_leg": FUNDING_REF,
                 "source": source + " (keyless)",
                 "fallbacks_tried": errors or None,
                 "vote": vote,
                 "fired_rotation_gate": avg_apr > THRESHOLDS["alt_funding_apr_above"],
-                "note": "vote needs positive AND rising; None on the first run "
-                        "of a fresh history log, when there is no prior value",
+                "note": "gate votes on absolute alt APR; the LADDER reads the "
+                        "alt-minus-BTC spread, which isolates alt-specific "
+                        "positioning from market-wide leverage",
             }
         except Exception as e:
             errors.append(provider.__name__ + ": " + str(e)[:80])
@@ -715,6 +757,7 @@ def main():
         "mvrv_ratio": safe_fetch(fetch_mvrv_ratio),
         "mayer_multiple": safe_fetch(fetch_mayer_multiple),
         "puell_multiple": safe_fetch(fetch_puell_multiple),
+        "nupl": safe_fetch(fetch_nupl),
         # dimension 3
         "fear_greed": safe_fetch(fetch_fear_greed),
         "social_volume": safe_fetch(fetch_social_volume),

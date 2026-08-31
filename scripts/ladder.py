@@ -76,76 +76,162 @@ LADDER_PENDING_DECISIONS = [
 # says "this signal matters less"; a cap says "this QUESTION gets one vote,
 # however many ways you ask it". The Monte Carlo showed per-signal weighting
 # achieved nothing; the cap addresses the double-count at its source.
-DIMENSION_CAPS = {1: 3.0, 3: 1.0, 5: 1.0, 6: 1.0, 7: 1.0, 9: 1.0}
+DIMENSION_CAPS = {1: 3.0, 5: 1.0, 6: 1.0, 7: 1.0, 9: 1.0}
 
 # Rotation-axis signals only. MVRV Z and NVT are deliberately ABSENT: they
 # answer "should we be exposed at all", which belongs to the risk axis and the
 # sell gate. Mixing them in was the double-count - one print moving two
 # decisions. Separating the questions is the fix; weighting was not.
+# Dimension 3 (sentiment) is DELIBERATELY ABSENT from the ladder.
+#
+# Fear & Greed was removed because it already votes in the six-dimension
+# composite. The same daily print moving two decisions is the overlap the
+# two-axis design exists to prevent - and unlike the MVRV/SSR case it cannot
+# be fixed by a weight, because it is literally one series read twice.
+#
+# social_volume left with it: LunarCrush is paid, so a D3 containing only an
+# unavailable signal would permanently drag coverage without ever voting.
+#
+# Consequence, measured: possible weight falls 8.0 -> 7.0 while measurable
+# stays 5.0, so coverage rises from 62.5% to 71.4% - above the 70% floor.
+# Removing two signals UNFREEZES the ladder, because both were dead weight in
+# the denominator. That is the correct behaviour, not a trick: coverage asks
+# "how much of what I rely on can I actually read", and a signal you can never
+# read should not be something you rely on.
 ROTATION_SIGNALS = {
     "eth_btc_momentum": (1, 1.0),
     "btc_dominance": (1, 1.0),
     "alt_dominance": (1, 0.5),
     "altseason_index": (1, 0.5),
-    "fear_greed": (3, 0.5),
-    "social_volume": (3, 0.5),
     "eth_etf_flows": (5, 1.0),
     "stablecoin_supply_ratio": (6, 1.0),
-    "alt_funding_rates": (7, 1.0),
+    "alt_funding_rates": (7, 1.0),   # now the alt-minus-BTC SPREAD
     "exchange_netflows": (9, 1.0),
 }
 
 
-def _measurable(payload):
-    """A signal counts only if it is fresh AND actually succeeded."""
+# The ladder evaluates its OWN thresholds from the raw `signal` value.
+#
+# It must never read `vote`. `vote` is computed in fetch_signals against the
+# GATE's thresholds, for a different instrument answering a different
+# question. Consuming it made the ladder silently inherit the gate's
+# calibration - the precise coupling the two-axis design exists to break.
+# One print must not move two decisions, and that includes not sharing the
+# comparison that turns a number into a boolean.
+#
+# Each rule returns True, False, or None. None means "this signal carries no
+# readable value", which reduces the denominator rather than voting no.
+
+def _above(payload, threshold):
+    v = payload.get("signal")
+    return None if v is None else v > threshold
+
+
+def _below(payload, threshold):
+    v = payload.get("signal")
+    return None if v is None else v < threshold
+
+
+def _rising_vs(payload, ref_field):
+    v, ref = payload.get("signal"), payload.get(ref_field)
+    return None if (v is None or ref is None) else v > ref
+
+
+def _falling_vs(payload, ref_field):
+    v, ref = payload.get("signal"), payload.get(ref_field)
+    return None if (v is None or ref is None) else v < ref
+
+
+def _funding_spread_positive(payload):
+    """Alt funding ABOVE BTC funding - see FUNDING_SPREAD note below."""
+    spread = payload.get("alt_minus_btc_apr_pct")
+    rising = payload.get("rising")
+    if spread is None or rising is None:
+        return None
+    return spread > 0 and rising
+
+
+LADDER_RULES = {
+    "eth_btc_momentum":        lambda p: _above(p, 10.0),
+    "btc_dominance":           lambda p: _below(p, 54.0),
+    "alt_dominance":           lambda p: _rising_vs(p, "ref_30d"),
+    "altseason_index":         lambda p: _above(p, 75.0),
+    # D3 (fear_greed, social_volume) intentionally absent - see
+    # ROTATION_SIGNALS for why.
+    "eth_etf_flows":           lambda p: _above(p, 0.0),
+    "stablecoin_supply_ratio": lambda p: _falling_vs(p, "ref_value"),
+    "alt_funding_rates":       lambda p: _funding_spread_positive(p),
+    "exchange_netflows":       lambda p: _below(p, 0.0),
+}
+
+
+def _fresh(payload):
+    """Structural availability only - says nothing about the reading."""
     if not isinstance(payload, dict):
         return False
     if payload.get("status") != "ok":
         return False
     age = payload.get("source_age_days")
-    if age is not None and age > MAX_SOURCE_AGE_DAYS:
+    return not (age is not None and age > MAX_SOURCE_AGE_DAYS)
+
+
+def _measurable(payload, key=None):
+    """Fresh AND carrying a value the ladder's own rule can evaluate."""
+    if not _fresh(payload):
         return False
-    return payload.get("vote") is not None
+    rule = LADDER_RULES.get(key) if key else None
+    if rule is None:
+        return payload.get("signal") is not None
+    try:
+        return rule(payload) is not None
+    except Exception:
+        return False
 
 
 def compute_t(signals):
-    """T over MEASURABLE weight, with per-dimension caps applied.
+    """T and coverage, both on the SAME dimension-capped basis.
 
-    An absent source reduces the denominator - it does not vote no. This is
-    the same denominator-honesty rule the gate uses, applied to a ratio.
+    The earlier version computed coverage on raw weights and T on capped
+    weights. With D1 weighing exactly its cap the two agreed by coincidence,
+    so the divergence was invisible - it would have appeared the first time a
+    fifth momentum signal was added. Both now share one basis, and a test
+    fails if they ever drift apart again.
+
+    An absent source reduces the denominator; it does not vote no.
     """
-    by_dim_total, by_dim_fired = {}, {}
-    measured, total = 0.0, 0.0
+    dim_possible, dim_measurable, dim_fired = {}, {}, {}
 
     for key, (dim, weight) in ROTATION_SIGNALS.items():
-        total += weight
+        dim_possible[dim] = dim_possible.get(dim, 0.0) + weight
         payload = signals.get(key)
-        if not _measurable(payload):
+        if not isinstance(payload, dict) or not _measurable(payload, key):
             continue
-        measured += weight
-        by_dim_total[dim] = by_dim_total.get(dim, 0.0) + weight
-        if payload.get("vote"):
-            by_dim_fired[dim] = by_dim_fired.get(dim, 0.0) + weight
+        dim_measurable[dim] = dim_measurable.get(dim, 0.0) + weight
+        rule = LADDER_RULES.get(key)
+        if rule and rule(payload):
+            dim_fired[dim] = dim_fired.get(dim, 0.0) + weight
 
-    # normalise each dimension to its cap so a crowded dimension cannot
-    # outvote a sparse one purely by having more ways to ask the question
-    fired_capped, measurable_capped = 0.0, 0.0
-    for dim, dim_total in by_dim_total.items():
-        cap = DIMENSION_CAPS.get(dim, dim_total)
-        scale = min(1.0, cap / dim_total) if dim_total else 0.0
-        measurable_capped += dim_total * scale
-        fired_capped += by_dim_fired.get(dim, 0.0) * scale
+    # One scale factor per dimension, applied to possible, measurable and
+    # fired alike - so every figure below is expressed in capped units.
+    possible = measurable = fired = 0.0
+    for dim, poss in dim_possible.items():
+        cap = DIMENSION_CAPS.get(dim, poss)
+        scale = min(1.0, cap / poss) if poss else 0.0
+        possible += poss * scale
+        measurable += dim_measurable.get(dim, 0.0) * scale
+        fired += dim_fired.get(dim, 0.0) * scale
 
-    coverage = measured / total if total else 0.0
-    t = (fired_capped / measurable_capped) if measurable_capped else None
+    coverage = measurable / possible if possible else 0.0
+    t = (fired / measurable) if measurable else None
 
     return {
         "t": round(t, 4) if t is not None else None,
         "coverage": round(coverage, 4),
         "coverage_floor": COVERAGE_FLOOR,
         "measurable": bool(t is not None and coverage >= COVERAGE_FLOOR),
-        "measurable_weight": round(measurable_capped, 2),
-        "total_weight": round(total, 2),
+        "measurable_weight": round(measurable, 4),
+        "total_weight": round(possible, 4),
+        "basis": "dimension-capped (coverage and T share one basis)",
     }
 
 

@@ -156,6 +156,7 @@ SIGNAL_REGISTRY = {
     "mayer_multiple":        (2, "track"),
     "puell_multiple":        (2, "track"),
     "social_volume":         (3, "track"),
+    "nupl":                  (2, "track"),
     "sopr":                  (9, "track"),
 }
 
