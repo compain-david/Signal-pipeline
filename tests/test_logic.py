@@ -354,3 +354,28 @@ class TestLadder(unittest.TestCase):
         Including them here was the double-count."""
         self.assertNotIn("mvrv_z_score", ladder.ROTATION_SIGNALS)
         self.assertNotIn("nvt", ladder.ROTATION_SIGNALS)
+
+
+class TestTrackedVotesDoNotLeak(unittest.TestCase):
+    """btc_dominance votes on the ladder's rotation axis but is tracked-only
+    for the gate. The two must not contaminate each other."""
+
+    def test_tracked_signal_vote_never_enters_the_gate_tally(self):
+        s = {k: {"vote": None, "status": "ok"} for k in dimensions.TIER_A_SIGNALS}
+        s["btc_dominance"] = {"vote": True, "status": "ok"}
+        t = dimensions.tally(s, "2026-08-31")
+        self.assertEqual(t["fired"], 0)
+        self.assertNotIn("btc_dominance", t["fired_signals"])
+
+    def test_tracked_signal_vote_never_enters_the_grade(self):
+        s = {k: {"vote": None, "status": "ok"} for k in dimensions.TIER_A_SIGNALS}
+        s["btc_dominance"] = {"vote": True, "status": "ok"}
+        self.assertEqual(dimensions.grade(s)["score"], 0.0)
+
+    def test_but_it_does_count_for_ladder_coverage(self):
+        s = {k: {"status": "ok", "vote": False, "source_age_days": 0}
+             for k in ladder.ROTATION_SIGNALS}
+        with_vote = ladder.compute_t(s)["coverage"]
+        s["btc_dominance"]["vote"] = None
+        without = ladder.compute_t(s)["coverage"]
+        self.assertGreater(with_vote, without)

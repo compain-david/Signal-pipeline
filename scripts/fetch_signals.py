@@ -639,7 +639,14 @@ def fetch_btc_dominance():
         "eth_price_usd": eth_price,
         "eth_btc_ratio": round(eth_price / btc_price, 5) if btc_price else None,
         "source": "coingecko" + (" (demo key)" if key else " (keyless)"),
-        "vote": None,  # tracked only under the new gate
+        # Tracked-only for the 10-dimension GATE (it carries no Tier A vote
+        # there), but the ladder's ROTATION AXIS needs it as a live vote at
+        # weight 1.0. Leaving vote=None made it unmeasurable for the ladder
+        # and dropped coverage to 56.25% - the ladder then froze for a reason
+        # that was an integration bug, not a data gap. dimensions.tally and
+        # dimensions.grade both iterate TIER_A_SIGNALS only, so a vote here
+        # cannot leak into the gate tally.
+        "vote": fired,
         "fired_rotation_gate": fired,  # legacy gate
     }
 
