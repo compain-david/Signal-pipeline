@@ -11,6 +11,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/analyse_correlation.py'
+      - 'scripts/montecarlo.py'
 
 permissions:
   contents: write
@@ -34,6 +35,7 @@ jobs:
           set -o pipefail
           mkdir -p analysis
           python scripts/analyse_correlation.py | tee analysis/correlation.txt
+          python scripts/montecarlo.py 1000 | tee analysis/montecarlo.txt
       - name: Commit results
         if: always()
         run: |

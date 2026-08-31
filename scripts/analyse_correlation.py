@@ -229,6 +229,18 @@ def main():
     print("  in 3 slots, so 7 slots held roughly 5 independent signals.")
     print("  4 of 7 therefore demanded ~%.2f independent observations." % (4 * 5 / 7))
 
+    # Dump the aligned series so downstream analysis (Monte Carlo) is
+    # reproducible without spending BGeometrics budget again.
+    outdir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                          "analysis")
+    os.makedirs(outdir, exist_ok=True)
+    with open(os.path.join(outdir, "series.json"), "w", encoding="utf-8") as f:
+        json.dump({"dates": dates,
+                   "series": {n: [sources[n][d] for d in dates] for n in names}},
+                  f)
+    print("\nWrote analysis/series.json (%d dates, %d series)"
+          % (len(dates), len(names)))
+
     try:
         backtest(sources, dates)
     except KeyError as e:
