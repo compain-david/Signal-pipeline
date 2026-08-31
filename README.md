@@ -18,14 +18,30 @@ constructing a dated path or knowing whether today's run has happened yet.
 
 ## Two gates run side by side
 
-| Gate | Status | Governs |
-|---|---|---|
-| **Legacy** — flat 5-signal gate | **AUTHORITATIVE** | decisions, until 30 Aug |
-| **New** — 10-dimension MECE gate | **SHADOW** | logged only, nothing yet |
+> **The JSON is the source of truth for which gate governs, not this table.**
+> Read `gate_new.authoritative` in `data/latest.json`. An earlier version of
+> this README hardcoded "SHADOW" and went stale the moment `ADOPTED_FROM`
+> passed, so the README and the JSON disagreed on the same day. A prose
+> description of a state that changes by date will always drift; only the
+> computed field can be trusted.
 
-Collecting a signal is not voting on it. The new gate logs what it *would*
-have said every day, so that when it activates it does so with real history
-behind it rather than from zero.
+| Gate | Governs |
+|---|---|
+| **Legacy** — flat 5-signal gate | decisions before `ADOPTED_FROM` |
+| **New** — 10-dimension MECE gate | decisions from `ADOPTED_FROM` onward |
+
+`ADOPTED_FROM` is **2026-08-30**, so as of 31 August the new gate is
+**authoritative** and the legacy gate is retained for continuity only.
+
+Collecting a signal is not voting on it. Before `ADOPTED_FROM` the new gate
+logged what it *would* have said each day, so that it activated with real
+history behind it rather than from zero. That shadow period has now ended.
+
+**Consequence worth stating plainly:** the new gate went authoritative by
+calendar alone, not through the Part D/E ceremony the spec called for, and
+three of its thresholds were provisional defaults at that moment. If that
+ceremony has not happened, move `ADOPTED_FROM` forward rather than leaving
+an unvalidated gate governing.
 
 Flip the switch by editing one constant in
 [`scripts/dimensions.py`](scripts/dimensions.py):
