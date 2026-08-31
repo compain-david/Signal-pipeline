@@ -1,0 +1,28 @@
+Monte Carlo: 1000 paths x 730 days, block bootstrap from 1366 real days
+Seed 20260831 (deterministic)
+
+=== outage probability 0% ===
+  rule                        fire %     changes/yr   whipsaws/yr
+  binary_low  (>=2 of 4)       36.6%         92.26         87.61
+  binary_high (>=3 of 4)        5.5%         18.49         15.37
+  weighted    (band B)         36.6%         92.26         87.61
+  ladder      (Pivot)          29.4%         12.54          0.00
+
+=== outage probability 5% ===
+  rule                        fire %     changes/yr   whipsaws/yr
+  binary_low  (>=2 of 4)       27.0%         79.52         74.20
+  binary_high (>=3 of 4)        3.1%         12.38          9.84
+  weighted    (band B)         27.0%         79.52         74.20
+  ladder      (Pivot)          35.7%         15.80          0.00
+  ladder frozen: 11.6% of days
+
+=== outage probability 15% ===
+  rule                        fire %     changes/yr   whipsaws/yr
+  binary_low  (>=2 of 4)       15.6%         58.13         50.94
+  binary_high (>=3 of 4)        1.3%          6.26          4.36
+  weighted    (band B)         15.6%         58.13         50.94
+  ladder      (Pivot)          35.3%         14.25          0.00
+  ladder frozen: 49.2% of days
+
+Whipsaws are the number that matters: a state change reversed inside
+14 days is a round trip that cost two transactions and gained nothing.

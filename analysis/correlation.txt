@@ -37,6 +37,8 @@ sth_realized_price           0.04     0.26    -0.09    -0.02     0.23     1.00
   in 3 slots, so 7 slots held roughly 5 independent signals.
   4 of 7 therefore demanded ~2.86 independent observations.
 
+Wrote analysis/series.json (1456 dates, 6 series)
+
 
 === HISTORICAL DRY RUN ===
 
