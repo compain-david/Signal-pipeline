@@ -1,6 +1,6 @@
 # Signal snapshot — 2026-08-31
 
-Generated 2026-08-31T17:08:08.869997+00:00 · schema v4
+Generated 2026-08-31T17:12:13.675872+00:00 · schema v4
 
 ## For the weekly brief composite
 
@@ -25,8 +25,9 @@ Not automatable: ETF net flows (no public API), LTH supply (no free source found
 
 | Signal | Dim | Tier | Value | Vote | Provenance |
 |---|---|---|---|---|---|
-| eth_btc_momentum | 1 | A | 5.61 | no | live |
+| eth_btc_momentum | 1 | A | 5.64 | no | live |
 | btc_dominance | 1 | track | 59.2 | — | live |
+| alt_dominance | 1 | track | 29.63 | — | FAILED (building) |
 | altseason_index | 1 | track | — | — | not automated |
 | mvrv_z_score | 2 | A | 0.8486 | no | live |
 | nvt | 2 | A | 26.28 | no | live |
@@ -37,7 +38,7 @@ Not automatable: ETF net flows (no public API), LTH supply (no free source found
 | social_volume | 3 | track | — | — | not automated |
 | eth_etf_flows | 5 | A | — | — | not automated |
 | stablecoin_supply_ratio | 6 | A | 6.163 | no | live |
-| alt_funding_rates | 7 | A | 2.0 | YES | live |
+| alt_funding_rates | 7 | A | 2.05 | YES | live |
 | exchange_netflows | 9 | A | -172202.96 | YES | live |
 | sopr | 9 | track | 1.0029 | — | live |
 | sth_realized_price | 10 | A | 69979.57 | YES | live |
