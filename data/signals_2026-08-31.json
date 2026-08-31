@@ -1,6 +1,6 @@
 {
   "date": "2026-08-31",
-  "fetched_at": "2026-08-31T13:56:21.847963+00:00",
+  "fetched_at": "2026-08-31T16:57:58.995664+00:00",
   "schema_version": 4,
   "thresholds": {
     "fear_greed_above": 60,
@@ -17,29 +17,31 @@
   },
   "signals": {
     "eth_btc_momentum": {
-      "signal": 4.69,
-      "eth_btc_start": 0.02992,
-      "eth_btc_now": 0.031324,
+      "signal": 5.83,
+      "eth_btc_start": 0.029744,
+      "eth_btc_now": 0.031478,
       "window_days": 14,
       "source": "coingecko (keyless)",
       "vote": false,
       "note": "vote fires above +10% over 14d",
       "status": "ok",
+      "frozen_streak": 0,
       "dimension": 1,
       "dimension_name": "relative_momentum",
       "tier": "A"
     },
     "btc_dominance": {
-      "signal": 59.14,
-      "btc_dominance_pct": 59.14,
-      "eth_dominance_pct": 11.14,
-      "btc_price_usd": 77773,
-      "eth_price_usd": 2439.23,
-      "eth_btc_ratio": 0.03136,
+      "signal": 59.2,
+      "btc_dominance_pct": 59.2,
+      "eth_dominance_pct": 11.17,
+      "btc_price_usd": 78802,
+      "eth_price_usd": 2473.49,
+      "eth_btc_ratio": 0.03139,
       "source": "coingecko (keyless)",
       "vote": null,
       "fired_rotation_gate": false,
       "status": "ok",
+      "frozen_streak": 0,
       "dimension": 1,
       "dimension_name": "relative_momentum",
       "tier": "track"
@@ -50,6 +52,7 @@
       "vote": null,
       "source": "coingecko",
       "note": "90d window requires COINGECKO_API_KEY - the keyless tier returns 200 but omits the 90d field",
+      "frozen_streak": 0,
       "dimension": 1,
       "dimension_name": "relative_momentum",
       "tier": "track"
@@ -62,6 +65,7 @@
       "vote": false,
       "status": "ok",
       "source_age_days": 1,
+      "frozen_streak": 0,
       "dimension": 2,
       "dimension_name": "valuation",
       "tier": "A"
@@ -75,6 +79,7 @@
       "note": "votes when NVT sits above its own 90-day average",
       "status": "ok",
       "source_age_days": 1,
+      "frozen_streak": 0,
       "dimension": 2,
       "dimension_name": "valuation",
       "tier": "A"
@@ -89,6 +94,7 @@
       "note": "ratio, not Z-Score - see mvrv_z_score for the Tier A signal",
       "status": "ok",
       "source_age_days": 1,
+      "frozen_streak": 0,
       "dimension": 2,
       "dimension_name": "valuation",
       "tier": "track"
@@ -100,6 +106,7 @@
       "vote": null,
       "status": "ok",
       "source_age_days": 1,
+      "frozen_streak": 0,
       "dimension": 2,
       "dimension_name": "valuation",
       "tier": "track"
@@ -112,6 +119,7 @@
       "note": "feeds the brief's Miners dimension; replaces the frozen estimate",
       "status": "ok",
       "source_age_days": 1,
+      "frozen_streak": 0,
       "dimension": 2,
       "dimension_name": "valuation",
       "tier": "track"
@@ -123,6 +131,7 @@
       "vote": true,
       "fired_rotation_gate": true,
       "status": "ok",
+      "frozen_streak": 0,
       "dimension": 3,
       "dimension_name": "sentiment",
       "tier": "A"
@@ -132,6 +141,7 @@
       "signal": null,
       "vote": null,
       "note": "paid-only; the one signal with no free equivalent",
+      "frozen_streak": 0,
       "dimension": 3,
       "dimension_name": "sentiment",
       "tier": "track"
@@ -141,6 +151,7 @@
       "signal": null,
       "vote": null,
       "note": "no stable public API - weekly web_search item, reduces the denominator rather than voting no",
+      "frozen_streak": 0,
       "dimension": 5,
       "dimension_name": "institutional_demand",
       "tier": "A"
@@ -156,35 +167,36 @@
       "note": "votes when SSR is falling over the lookback window",
       "status": "ok",
       "source_age_days": 1,
+      "frozen_streak": 0,
       "dimension": 6,
       "dimension_name": "liquidity",
       "tier": "A"
     },
     "alt_funding_rates": {
-      "signal": 1.59,
-      "alt_avg_funding_apr_pct": 1.59,
-      "previous_apr_pct": -4.01,
+      "signal": 1.62,
+      "alt_avg_funding_apr_pct": 1.62,
+      "previous_apr_pct": 1.59,
       "rising": true,
       "per_symbol": {
         "ETHUSDT": {
-          "rate_pct": 0.003099,
+          "rate_pct": 0.005019,
           "settlements_per_day": 3,
-          "apr_pct": 3.39
+          "apr_pct": 5.5
         },
         "SOLUSDT": {
-          "rate_pct": -0.007664,
+          "rate_pct": -0.002759,
           "settlements_per_day": 3,
-          "apr_pct": -8.39
+          "apr_pct": -3.02
         },
         "XRPUSDT": {
-          "rate_pct": 0.00039,
+          "rate_pct": 0.000903,
           "settlements_per_day": 3,
-          "apr_pct": 0.43
+          "apr_pct": 0.99
         },
         "HYPEUSDT": {
-          "rate_pct": 0.01,
+          "rate_pct": 0.002756,
           "settlements_per_day": 3,
-          "apr_pct": 10.95
+          "apr_pct": 3.02
         }
       },
       "source": "okx (keyless)",
@@ -196,6 +208,7 @@
       "fired_rotation_gate": false,
       "note": "vote needs positive AND rising; None on the first run of a fresh history log, when there is no prior value",
       "status": "ok",
+      "frozen_streak": 0,
       "dimension": 7,
       "dimension_name": "derivatives_positioning",
       "tier": "A"
@@ -219,6 +232,7 @@
       "vote": true,
       "fired_rotation_gate": true,
       "status": "ok",
+      "frozen_streak": 0,
       "dimension": 9,
       "dimension_name": "supply_side",
       "tier": "A"
@@ -230,6 +244,7 @@
       "vote": null,
       "status": "ok",
       "source_age_days": 1,
+      "frozen_streak": 0,
       "dimension": 9,
       "dimension_name": "supply_side",
       "tier": "track"
@@ -237,14 +252,15 @@
     "sth_realized_price": {
       "signal": 69979.57,
       "sth_realized_price_usd": 69979.57,
-      "btc_price_usd": 77773,
-      "premium_pct": 11.14,
+      "btc_price_usd": 78802,
+      "premium_pct": 12.61,
       "as_of": "2026-08-28",
       "source": "bgeometrics (keyless)",
       "vote": true,
       "note": "BTC only - no free ETH equivalent found (open gap)",
       "status": "ok",
       "source_age_days": 3,
+      "frozen_streak": 0,
       "dimension": 10,
       "dimension_name": "inflection",
       "tier": "A"
@@ -255,8 +271,10 @@
     "failed": 0,
     "stale": 0,
     "structurally_unavailable": 3,
+    "frozen": 0,
     "failed_signals": [],
     "stale_signals": [],
+    "frozen_excluded": [],
     "degraded": false,
     "note": "degraded=true means the run completed but lost live data - check failed_signals before trusting the tally"
   },
@@ -286,6 +304,42 @@
       "eth_etf_flows"
     ],
     "tier_b_confirming": [],
+    "semantic": {
+      "rotation_fired": [
+        "alt_funding_rates",
+        "exchange_netflows",
+        "sth_realized_price"
+      ],
+      "froth_fired": [
+        "fear_greed"
+      ],
+      "rotation_available": 5,
+      "froth_available": 3,
+      "reading": "mixed: 3 rotation, 1 froth"
+    },
+    "effective_difficulty": {
+      "threshold": 5,
+      "of_checkable": 8,
+      "pct_required": 62.5,
+      "note": "the old 4/7 gate was ~57% of a CORRELATED base; this is the same ratio on an independent base, which is stricter - see TIER_A_THRESHOLD for the open decision"
+    },
     "note": "AUTHORITATIVE - this gate governs"
+  },
+  "gate_grade": {
+    "grade": "B",
+    "label": "strong - clears the old 4-of-7 bar with margin",
+    "score": 4.0,
+    "possible_this_run": 7.6,
+    "max_possible": 8.6,
+    "rotation_score": 3.0,
+    "froth_score": 1.0,
+    "capped_for_froth_majority": false,
+    "bands": {
+      "A": 5.0,
+      "B": 3.5,
+      "C": 2.0,
+      "D": 0.0
+    },
+    "note": "independent-evidence units, correlation-adjusted. The old 4-of-7 gate demanded ~2.86 units; that anchors band B."
   }
 }
