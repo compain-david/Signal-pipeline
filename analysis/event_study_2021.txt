@@ -6,9 +6,9 @@ SHADOW ONLY, governs nothing. Offline: every number below comes from analysis/. 
 1. DATA INVENTORY - what actually exists on disk
 ----------------------------------------------------------------------------------------------------------------------
    analysis/ethbtc.json        2799 days, 2019-01-01 -> 2026-08-30
-   analysis/series.json        1456 days, 2022-08-31 -> 2026-08-28
-   analysis/.cache F&G         3130 days, 2018-02-01 -> 2026-08-31 (2 cache file(s), 0 disagreements)
-   analysis/.cache BTC close   4990 days, 2013-01-01 -> 2026-08-30
+   analysis/series.json        1455 days, 2022-09-01 -> 2026-08-28
+   analysis/.cache F&G         3131 days, 2018-02-01 -> 2026-09-01 (2 cache file(s), 0 disagreements)
+   analysis/.cache BTC close   MISSING: no btc_price*.json in /home/runner/work/Signal-pipeline/Signal-pipeline/scripts/../analysis/.cache
 
    WHERE THESE INPUTS LIVE - the headline below depends on a GITIGNORED directory
    ------------------------------------------------------------------------------------------------------------------
@@ -27,12 +27,12 @@ SHADOW ONLY, governs nothing. Offline: every number below comes from analysis/. 
    Reach back into 2021:
      ethbtc.json                          365 of 365 days
      .cache fear_greed                    365 of 365 days
-     series.json fear_greed                 0 of 365 days   (series starts 2022-08-31)
-     series.json mvrv_z_score               0 of 365 days   (series starts 2022-08-31)
-     series.json nvt                        0 of 365 days   (series starts 2022-08-31)
-     series.json puell_multiple             0 of 365 days   (series starts 2022-08-31)
-     series.json stablecoin_supply_ratio    0 of 365 days   (series starts 2022-08-31)
-     series.json sth_realized_price         0 of 365 days   (series starts 2022-08-31)
+     series.json fear_greed                 0 of 365 days   (series starts 2022-09-01)
+     series.json mvrv_z_score               0 of 365 days   (series starts 2022-09-01)
+     series.json nvt                        0 of 365 days   (series starts 2022-09-01)
+     series.json puell_multiple             0 of 365 days   (series starts 2022-09-01)
+     series.json stablecoin_supply_ratio    0 of 365 days   (series starts 2022-09-01)
+     series.json sth_realized_price         0 of 365 days   (series starts 2022-09-01)
 
    HOW eth_btc_momentum IS RECONSTRUCTED HERE - read before trusting any MOM cell below
    ------------------------------------------------------------------------------------------------------------------
@@ -420,7 +420,7 @@ WINDOW B : September - November 2021 altseason   (2021-09-01 -> 2021-11-30)
        read the empty column as the gate correctly staying out.
 
    (b) The ladder is frozen every day of the year, so ladder.py's Monte Carlo has never been exposed to
-       a 2021-shaped move. It is block-bootstrapped from 1366 real days starting 2022-11-29 - derived here
+       a 2021-shaped move. It is block-bootstrapped from 1365 real days starting 2022-11-30 - derived here
        by running montecarlo.to_votes over analysis/series.json, the same input the Monte Carlo reads.
        Its 0.00 whipsaws/yr is a property of the 14-day dwell, not evidence it survives an altseason
        it has never seen.
@@ -442,8 +442,8 @@ WINDOW B : September - November 2021 altseason   (2021-09-01 -> 2021-11-30)
    that the module itself refuted, which is why it is computed now.
 
      scoreable Tier A signals today                 1 of 8
-     after the backfill above                       5 of 8   (gained: mvrv_z_score, nvt, stablecoin_supply_ratio, sth_realized_price)
-     gate threshold                                 5 of 8 needed  ->  REACHABLE
+     after the backfill above                       4 of 8   (gained: mvrv_z_score, nvt, stablecoin_supply_ratio)
+     gate threshold                                 5 of 8 needed  ->  STILL UNREACHABLE BY ARITHMETIC
      best ladder coverage after the backfill        28.6% vs the 70% floor  ->  STILL FROZEN, the floor stays untestable
 
    Read that second pair carefully: the prescribed backfill is a GATE fix, not a ladder fix. Of the four
@@ -455,5 +455,3 @@ WINDOW B : September - November 2021 altseason   (2021-09-01 -> 2021-11-30)
    Funding, netflow and dominance archives are the half that may not be purchasable at any price. If they
    are not, the spec should say so, rather than leaving them standing as assumed evidence.
 
-
-written to C:\Users\dcompain\signal-pipeline\analysis\event_study_2021.txt

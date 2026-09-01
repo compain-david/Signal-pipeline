@@ -2,11 +2,11 @@ Fetching histories...
   mvrv_z_score             1461 points
   nvt                      1459 points
   stablecoin_supply_ratio  1461 points
-  sth_realized_price       1459 points
+  sth_realized_price       1458 points
   puell_multiple           1461 points
-  fear_greed               3130 points
+  fear_greed               3131 points
 
-Common dates: 1456  (2022-08-31 -> 2026-08-28)
+Common dates: 1455  (2022-09-01 -> 2026-08-28)
 
 === Correlation of DAILY CHANGES ===
 
@@ -37,18 +37,18 @@ sth_realized_price           0.04     0.26    -0.09    -0.02     0.23     1.00
   in 3 slots, so 7 slots held roughly 5 independent signals.
   4 of 7 therefore demanded ~2.86 independent observations.
 
-Wrote analysis/series.json (1456 dates, 6 series)
+Wrote analysis/series.json (1455 dates, 6 series)
 
 
 === HISTORICAL DRY RUN ===
 
   Testable Tier A signals: 4 (MVRV Z, NVT, F&G, SSR)
-  Days evaluated: 1366  (2022-11-29 -> 2026-08-28)
+  Days evaluated: 1365  (2022-11-30 -> 2026-08-28)
 
   votes   days     %% of history
     0      193    14.1%  #######
-    1      670    49.0%  ########################
-    2      431    31.6%  ###############
+    1      670    49.1%  ########################
+    2      430    31.5%  ###############
     3       72     5.3%  ##
     4        0     0.0%  
 
