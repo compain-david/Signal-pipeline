@@ -23,9 +23,13 @@ So each signal gets a monotonicity score: how many of the four adjacent band
 pairs move in the same direction. 4/4 or 0/4 is a clean gradient. 2/4 is noise.
 
 Bands are QUANTILES of each series' own history, never absolute levels. That
-is deliberate: the dominance series here is derived from a 25-asset basket, so
-its level is biased high against CoinGecko's all-coin figure (roughly 71% vs
-59%). Quantiles are invariant to that bias; absolute thresholds are not, and
+is deliberate: the dominance series here is derived from a basket whose size
+VARIES day to day, so its level is biased high against any all-coin figure and
+the bias is not even constant. The range and the median level are recomputed
+and printed by main() rather than quoted here - this docstring carried "25
+assets" for a long time, analysis/dominance.json has never held 25, and a
+number nobody recomputes is a number nobody owns.
+Quantiles are invariant to that bias; absolute thresholds are not, and
 using "< 54%" on this series would be meaningless.
 
 Regime split
@@ -144,8 +148,13 @@ def main():
     eth_dom = {d: v["eth_dom"] for d, v in dom_raw.items()}
 
     print("Etude par fourchettes - positionnement, pas declenchement")
-    print("  dominance derivee d un panier de 25 actifs : le NIVEAU est")
-    print("  biaise haut (~71%% contre ~59%% chez CoinGecko), la DYNAMIQUE non.")
+    sizes = [v["n_assets"] for v in dom_raw.values() if v.get("n_assets")]
+    print("  dominance derivee d un panier de %d a %d actifs selon le jour"
+          % (min(sizes), max(sizes)))
+    print("  (%d jours mesures, mediane %.0f) : mediane btc_dom %.1f%% sur ce"
+          % (len(sizes), fs.median(sizes), fs.median(list(dom.values()))))
+    print("  panier restreint. Le NIVEAU est donc biaise haut contre une")
+    print("  dominance tous-actifs, la DYNAMIQUE non.")
     print("  Toutes les bandes sont des quantiles, jamais des seuils absolus.")
 
     candidates = [

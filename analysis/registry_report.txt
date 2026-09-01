@@ -1,0 +1,364 @@
+REGISTRE DE PREENREGISTREMENT - genere le 2026-09-01
+==========================================================================
+Ce registre NE GOUVERNE RIEN. Il compte les tirages, et il refuse.
+Fichier  : analysis/registry.json (schema v2, methode v2)
+           Les resultats sans method_version datent d une methode
+           anterieure - nulle non restreinte, direction in-sample -
+           et sont conserves tels quels, jamais reecrits.
+Horsligne: aucun appel reseau. Le cache F&G est lu, jamais complete ;
+           s il manque, le module echoue au lieu de sortir sur le web.
+Config   : percentile glissant sur 365 OBSERVATIONS | train 365 obs. |
+           test 180 obs. | horizon 90 jours - une seule configuration,
+           aucun balayage. OBSERVATIONS, pas jours calendaires :
+           wf.rolling_percentile compte 365 POSITIONS dans la liste de
+           dates triee. Les trous de chaque serie sont comptes plus bas
+           (colonne 'trous'), parce qu une fenetre de 365 positions sur
+           une serie trouee remonte plus loin que son etiquette.
+Cout     : 298 s de calcul mesurees dans ce run, 3000 tirages de
+           nulle au total (250 par mode, 2 modes, par hypothese
+           scoree). Augmenter SHUFFLES coute lineairement et
+           n achete rien contre le plancher en plis.
+* = panier alt SANS SOL/SUI/HYPE - biais de construction
+
+QUELLES SERIES, EXACTEMENT
+--------------------------------------------------------------------------
+  Cibles : analysis/rotations.json, derniere date commune 2026-08-31.
+  ATTENTION - la cible eth_btc de ce rapport est l INDEX rotations.json,
+  pas le prix analysis/ethbtc.json sur lequel forward_study, band_study,
+  walkforward et oos_test ont ete calcules. Mesure dans ce run :
+    rapport de niveau entre les deux series : 5.965 a 6.293
+    rendements forward 90j sur 2709 jours communs : ecart median 0.21 pt,
+    moyen 0.31 pt, MAXIMUM 1.63 pt.
+  Ces points de rendement sont la MAUVAISE unite pour juger de la
+  consequence, et ils se lisent comme negligeables. Ce qui change
+  vraiment, a configuration IDENTIQUE (365/365/180, horizon 90), c est le
+  nombre de PLIS et l accord construit dessus :
+    signal / eth_btc            ici        wf.walk sur ethbtc.json
+    dominance BTC             3/3            2/2    DIFFERENT
+    dominance ETH             4/4            4/4    identique
+    niveau ETH/BTC            5/5            4/4    DIFFERENT
+    Fear & Greed              1/9            1/9    identique
+  La colonne 'ici' marche sur rotations.json['eth_btc'], la colonne
+  wf.walk sur analysis/ethbtc.json - c est la comparaison que
+  rotation_matrix.py imprime deja en section 5, et c est sa fonction
+  rm.reference_fold_comparison qui la calcule ici, pas une seconde
+  arithmetique ecrite de memoire. Deux sources d ecart se cumulent : la
+  serie de prix, et le fait que le percentile ne voit pas les memes
+  jours utilisables de chaque cote, donc les plis ne coupent pas au
+  meme endroit. Une ligne eth_btc d ici ne se compare donc pas terme a
+  terme a analysis/walkforward.txt, et le nombre de plis est ce qui le
+  montre.
+  Dominance : panier de 14 a 24 actifs selon le jour (2800 jours mesures).
+  Le NIVEAU de dominance est donc biaise ; seuls les rangs servent ici.
+  Fear & Greed : le depot porte DEUX series F&G, jamais comparees
+  jusqu ici. Ce module lit analysis/.cache/fng.json (3130 jours,
+  depuis 2018-02-01) et ignore analysis/series.json['fear_greed'] (1456 jours,
+  depuis 2022-08-31). Le choix se justifie par la couverture : la seconde
+  commence apres l altseason 2021, la seule periode ou F&G soit le
+  seul signal disponible. Reconciliation mesuree ici :
+    1456 jours communs, 1456 identiques a la valeur pres, ecart
+    median 0.00, MAXIMUM 0.00 point de F&G.
+
+POURQUOI CE FICHIER EXISTE
+--------------------------------------------------------------------------
+Sept analyses sur les memes quatre ans ont produit un gradient 4/4
+parfait, dissous hors echantillon (analysis/oos_test.txt). Sans
+compteur, la vingtieme hypothese qui marche est le vingtieme tirage,
+et rien dans le depot ne permettait de le savoir. Le registre ecrit la
+direction ATTENDUE avant le resultat : c est la seule chose qu on ne
+peut pas rediger apres coup.
+
+HYPOTHESES ENREGISTREES
+--------------------------------------------------------------------------
+  id    signal                   cible       dir.   seuil enregistree
+  H01   dominance BTC            eth_btc       +1     70% 2026-09-01
+  H02   dominance ETH            eth_btc       +1     70% 2026-09-01
+  H03   niveau ETH/BTC           eth_btc       +1     70% 2026-09-01
+  H04   Fear & Greed             eth_btc       +1     70% 2026-09-01
+  H05   mvrv_z_score             eth_btc       +1     70% 2026-09-01
+  H06   nvt                      eth_btc       +1     70% 2026-09-01
+  H07   stablecoin_supply_ratio  eth_btc       -1     70% 2026-09-01
+  H08   dominance BTC            alt_eth*      -1     70% 2026-09-01
+  H09   dominance ETH            alt_eth*      -1     70% 2026-09-01
+  H10   Fear & Greed             alt_eth*      +1     70% 2026-09-01
+  H11   dominance BTC            alt_btc*      +1     70% 2026-09-01
+
+PREENREGISTREE OU POST-HOC - calcule, pas declare
+--------------------------------------------------------------------------
+  PRE exige 270 jours de donnees ARRIVEES APRES l enregistrement
+  (un pli de test de 180j + un horizon de 90j), sinon POST.
+  Ici : enregistrement 2026-09-01, donnees jusqu au 2026-08-31 = -1 jours inedits.
+  Donc les 11 hypotheses sont POST-HOC. Aucune n a ete ecrite avant
+  d avoir vu ces donnees, et le registre le constate au lieu de le
+  croire sur parole. Elles basculeront en PRE au plus tot le 2027-05-29,
+  sans que rien ne soit reecrit : c est la seule facon pour ce fichier
+  de prendre de la valeur, et elle consiste a attendre.
+
+BARRE DE SIGNIFICATIVITE CORRIGEE
+--------------------------------------------------------------------------
+  hypotheses enregistrees        : 11
+  comparaisons tentees ce run    : 11
+  comparaisons SCOREES (cumul)   : 6
+  alpha famille                  : 0.050
+  barre Bonferroni alpha/n       : 0.0083
+
+  Bonferroni parce que c est la seule correction recalculable a partir
+  d un simple compteur, sans hypothese que ces donnees ne
+  soutiendraient pas. Ses faiblesses, a lire avec chaque verdict :
+   - elle suppose les tests independants. Dominance BTC et dominance
+     ETH sont quasi le miroir l une de l autre, et alt_btc suit
+     alt_eth x eth_btc : la vraie famille est plus petite que le
+     compteur, donc la barre est trop severe.
+   - elle ne compte que ce qui est ECRIT. Les fenetres balayees et les
+     seuils essayes a la main n ont jamais atteint le fichier. Le
+     compteur est un PLANCHER de la famille reelle : une recherche non
+     comptee n est corrigee par aucune arithmetique.
+   - elle achete le taux de faux positifs en detruisant la puissance.
+     A famille 6, un signal reel mais modeste n a presque aucune
+     chance de passer. C est le prix, paye parce que l alternative -
+     aucun compteur - a deja produit un gradient dissous.
+
+MESURES - walk-forward, direction hors echantillon
+--------------------------------------------------------------------------
+  id    signal                   cible       jours  trous  avant tent.  plis  accord dir. h-ech.  in-sample
+  H01   dominance BTC            eth_btc      2710      0      0    11     3    100% +1 (3+/0-)   +1
+  H02   dominance ETH            eth_btc      2710      0      0    11     4    100% -1 (0+/4-)   ?
+  H03   niveau ETH/BTC           eth_btc      2710      0      0    11     5    100% -1 (0+/5-)   +1
+  H04   Fear & Greed             eth_btc      2709      1    331    10     9     11% +1 (6+/3-)   ?
+  H05   mvrv_z_score             eth_btc      1369      3      0     3     1      0% +1 (1+/0-)   +1
+  H06   nvt                      eth_btc      1369      3      0     3     0       - ? (0+/0-)    -1
+  H07   stablecoin_supply_ratio  eth_btc      1369      3      0     3     0       - ? (0+/0-)    ?
+  H08   dominance BTC            alt_eth*     2710      0      0    11     3     33% -1 (1+/2-)   ?
+  H09   dominance ETH            alt_eth*     2710      0      0    11     5     60% +1 (4+/1-)   ?
+  H10   Fear & Greed             alt_eth*     2709      1    331    10     7     43% -1 (3+/4-)   -1
+  H11   dominance BTC            alt_btc*     2710      0      0    11     5     80% +1 (5+/0-)   +1
+
+  trous = jours calendaires ABSENTS de la serie restreinte, entre sa
+  premiere et sa derniere date. C est la mesure qui manquait sous
+  l etiquette 'percentile glissant 365j' : la fenetre compte 365
+  observations, donc sur une serie a trous elle remonte au-dela de 365
+  jours calendaires, d autant plus loin que la colonne est grande.
+  jours = dates du signal que la cible sait noter ; avant = dates du
+  signal ANTERIEURES au debut de la cible, exclues avant tout melange.
+  Sans cette restriction le melange de Fear & Greed injecterait ses
+  jours 2018 dans une fenetre qui commence en 2019, et tirerait sa
+  nulle d une periode plus large que le signal lui-meme.
+  tent. = fenetres train/test decoupees ; plis = celles ou les DEUX
+  cotes donnent une direction identifiable. L ecart entre les deux
+  colonnes est du perdu, pas du bruit ecarte.
+  La colonne in-sample lit tout l echantillon, plis de test compris.
+  Elle n est PAS un critere. Elle est imprimee parce que ce run montre
+  ce qu elle vaut, et le montre sur des identifiants comptes ici :
+    signe oppose a la mesure hors echantillon : H03
+    illisible la ou les plis tranchent        : H02, H04, H09
+  Un critere bati la-dessus aurait valide ou invalide des hypotheses
+  sur un gradient qui a vu ses propres donnees de test.
+
+LE MELANGE NE CONSERVE PAS LES PLIS - mesure, pas suppose
+--------------------------------------------------------------------------
+  id    cible      mode      lances utilis. degen. plis obtenus   reels apparies base moyenne   moyenne  ecart
+  H02   eth_btc    melange      250     229     21 0..7 (med 2)       4       27 apparies(27)       46%    +54
+  H02   eth_btc    decalage     250     223     27 0..6 (med 2)       4       23 apparies(23)       45%    +55
+  H03   eth_btc    melange      250     221     29 0..6 (med 2)       5       14 tous(221)          49%    +51
+  H03   eth_btc    decalage     250     239     11 0..7 (med 3)       5       25 apparies(25)       54%    +46
+  H04   eth_btc    melange      250     221     29 0..7 (med 2)       9        0 tous(221)          46%    -35
+  H04   eth_btc    decalage     250     250      0 2..9 (med 6)       9        4 tous(250)          55%    -43
+  H09   alt_eth*   melange      250     223     27 0..7 (med 2)       5       12 tous(223)          53%     +7
+  H09   alt_eth*   decalage     250     227     23 0..5 (med 2)       5        2 tous(227)          55%     +5
+  H10   alt_eth*   melange      250     215     35 0..7 (med 2)       7        1 tous(215)          55%    -12
+  H10   alt_eth*   decalage     250     250      0 2..9 (med 6)       7       64 apparies(64)       54%    -11
+  H11   alt_btc*   melange      250     232     18 0..8 (med 2)       5       11 tous(232)          48%    +32
+  H11   alt_btc*   decalage     250     250      0 1..8 (med 4)       5       47 apparies(47)       57%    +23
+
+  utilis. = tirages ayant produit au moins un pli ; degen. = tirages
+  sans aucun pli identifiable, donc sans test.
+  base moyenne = SUR QUOI la moyenne et l ecart portent, et sur combien
+  de tirages. 'apparies(n)' : les tirages tombes sur le meme nombre de
+  plis que le reel, seul cas ou le critere 4 peut rejeter.
+  'tous(n)' : repli sur tous les tirages exploitables des que les
+  apparies sont sous 20 - la cellule compare alors DEUX EXPERIENCES
+  differentes et n est que descriptive. 'n=k insuff.' : moins de 20
+  tirages derriere le chiffre, donc aucune moyenne n est imprimee.
+  Une version precedente affichait ici 'moyenne 71%' calculee sur UN
+  seul tirage apparie, avec la colonne apparies=1 juste a cote et rien
+  qui relie les deux : une moyenne d un tirage n est pas une moyenne,
+  et un ecart qui en decoule n est pas un ecart.
+  Ce que ce tableau dit : un melange produit beaucoup MOINS de plis que
+  la serie reelle. wf.direction() rend None des qu une bande compte
+  moins de dix observations ou que le gradient fait match nul, et une
+  serie melangee y tombe sans arret. Un commentaire de la version
+  precedente affirmait que le melange conservait la structure des plis :
+  les colonnes ci-dessus le dementent.
+  Consequences assumees :
+   - le p n est calcule que sur les melanges APPARIES (meme nombre de
+     plis que le reel). Sous 20 apparies, aucune comparaison valide
+     n existe et le verdict est SOUS_RESOLU, jamais REJETE.
+   - a deux plis, un taux d accord ne peut valoir que 0, 50 ou 100 :
+     une nulle a plis courts est grossiere autant qu elle est fausse.
+   - le decalage circulaire garde l autocorrelation, donc les plis. Il
+     est imprime pour montrer que l effondrement vient du melange, pas
+     des donnees. Il n est jamais un critere : la regle demandee est un
+     controle par melange.
+
+PLANCHER DE RESOLUTION
+--------------------------------------------------------------------------
+  p ne peut pas descendre sous max(0.5**plis, 1/(apparies+1)), ou
+  apparies compte les melanges tombes sur le MEME nombre de plis que
+  la serie reelle.
+  Le declencheur du repli, exactement : sous 20 apparies, le p est
+  calcule sur TOUS les melanges exploitables, pas sur les apparies.
+  Ce n est donc pas la seule ligne a zero apparie qui bascule - toute
+  ligne sous le seuil bascule, y compris avec 14, 12 ou 11 apparies
+  imprimes sur la meme ligne. La colonne 'base du p' dit laquelle,
+  parce que sans elle un lecteur attribue le p aux apparies affiches a
+  cote, et se trompe de plusieurs centaines de tirages.
+  Le PLANCHER, lui, ne bascule jamais : il compte les melanges
+  REELLEMENT apparies, pas les 250 lances ni les exploitables du repli.
+  Annoncer 1/251 = 0.0040 serait vendre une resolution qu aucune hypothese
+  n a atteinte ici. Zero apparie donne donc un plancher de 1.0000 : le
+  design n avait aucune resolution, et le p a cote n est qu une
+  description.
+  id    cible       plis  apparies  plancher         p base du p     barre
+  H02   eth_btc        4        27    0.0625    0.0714 apparies(27)  0.0083
+  H03   eth_btc        5        14    0.0667    0.2162 tous(221)     0.0083
+  H04   eth_btc        9         0    1.0000    0.6937 tous(221)     0.0083
+  H09   alt_eth*       5        12    0.0769    0.4509 tous(223)     0.0083
+  H10   alt_eth*       7         1    0.5000    0.6250 tous(215)     0.0083
+  H11   alt_btc*       5        11    0.0833    0.2060 tous(232)     0.0083
+  Avec 4 plis le plancher vaut deja 0.0625 : un walk-forward PARFAIT a
+  4 plis ne peut pas atteindre 0.05, meme sans correction. Ces tests
+  sortent SOUS_RESOLU : ils n ont pas echoue, ils ne pouvaient pas
+  conclure. Les lire comme des quasi-succes serait exactement l erreur
+  que ce module combat.
+
+REGLE D ADOPTION
+--------------------------------------------------------------------------
+  Un signal est ADOPTE seulement si TOUT est vrai :
+   1. >= 4 plis de walk-forward
+   2. direction HORS ECHANTILLON (majorite des plis de test) egale a la
+      direction ENREGISTREE avant la mesure
+   3. accord >= max(seuil de l hypothese, 70%)
+   4. ecart >= 15 pts contre son PROPRE melange, apparie en plis
+   5. p de permutation <= barre corrigee, sur melanges apparies
+   6. PREENREGISTREE : >= 270 jours de donnees arrivees APRES elle
+  Les criteres 2 a 5 sont tous mesures hors echantillon ou contre une
+  nulle. Aucun critere in-sample n entre dans la decision : la colonne
+  in-sample du tableau MESURES est informative et rien d autre.
+  Le critere 4 est neutralise - il ne peut pas rejeter - quand la nulle
+  n est pas appariee, parce que rejeter sur une nulle incomparable
+  serait commettre l erreur que ce module audite.
+  La regle 6 plafonne tout resultat post-hoc a CANDIDAT. Aucune analyse
+  faite aujourd hui ne peut donc promouvoir quoi que ce soit
+  aujourd hui. C est cher, et c est le seul garde-fou qui tienne.
+
+VERDICTS
+--------------------------------------------------------------------------
+  H01   dominance BTC            eth_btc    NON_TESTABLE  [POST]
+        3 plis < 4 requis - non concluant
+  H02   dominance ETH            eth_btc    REJETE        [POST]
+        direction hors echantillon -1 contre +1 attendue (0 plis +1, 4 plis -1) - l hypothese ecrite est fausse
+  H03   niveau ETH/BTC           eth_btc    REJETE        [POST]
+        direction hors echantillon -1 contre +1 attendue (0 plis +1, 5 plis -1) - l hypothese ecrite est fausse
+  H04   Fear & Greed             eth_btc    REJETE        [POST]
+        accord 11% < seuil 70%
+  H05   mvrv_z_score             eth_btc    NON_TESTABLE  [POST]
+        1 plis < 4 requis - non concluant
+  H06   nvt                      eth_btc    NON_TESTABLE  [POST]
+        0 plis < 4 requis - non concluant
+  H07   stablecoin_supply_ratio  eth_btc    NON_TESTABLE  [POST]
+        0 plis < 4 requis - non concluant
+  H08   dominance BTC            alt_eth*   NON_TESTABLE  [POST]  [panier alt SANS SOL/SUI/HYPE - biais de construction]
+        3 plis < 4 requis - non concluant
+  H09   dominance ETH            alt_eth*   REJETE        [POST]  [panier alt SANS SOL/SUI/HYPE - biais de construction]
+        accord 60% < seuil 70%
+        direction hors echantillon +1 contre -1 attendue (4 plis +1, 1 plis -1) - l hypothese ecrite est fausse
+  H10   Fear & Greed             alt_eth*   REJETE        [POST]  [panier alt SANS SOL/SUI/HYPE - biais de construction]
+        accord 43% < seuil 70%
+        direction hors echantillon -1 contre +1 attendue (3 plis +1, 4 plis -1) - l hypothese ecrite est fausse
+  H11   dominance BTC            alt_btc*   SOUS_RESOLU   [POST]  [panier alt SANS SOL/SUI/HYPE - biais de construction]
+        11 melanges sur 250 atteignent les 5 plis reels (min 20 requis) - aucune comparaison valide n a pu etre construite
+        p plancher 0.0833 > barre 0.0083 - le test ne pouvait pas conclure, 5 plis / 11 melanges apparies
+
+  bilan : REJETE=5, SOUS_RESOLU=1, NON_TESTABLE=5
+
+CONTRE QUOI LIRE UN ACCORD WALK-FORWARD - le controle de soi
+--------------------------------------------------------------------------
+  H03 a ete enregistree comme CONTROLE : "controle: le niveau se predit-il lui-meme".
+  Elle demande si le niveau niveau ETH/BTC predit le niveau eth_btc. C est un
+  predicteur DEGENERE, et il obtient l accord le plus eleve du run.
+  Les autres hypotheses de la meme cible, cote a cote :
+    id    signal                     accord       plis verdict
+    H01   dominance BTC                100%       3/3   NON_TESTABLE
+    H02   dominance ETH                100%       4/4   REJETE
+    H03   niveau ETH/BTC               100%       5/5   REJETE   <-- controle
+    H04   Fear & Greed                  11%       1/9   REJETE
+    H05   mvrv_z_score                   0%       0/1   NON_TESTABLE
+
+  Accords a 100% dans ce groupe : 3 (H01, H02, H03), dont le controle.
+  C est l inference que ce run publie, et elle va contre l intuition
+  qu un accord de plis eleve vaut preuve :
+   - la reference implicite d un accord walk-forward est 50%%, deux
+     directions coincidant a pile ou face. Ce run montre que la
+     reference est fausse dans ce design : un predicteur degenere y
+     atteint 100% sur 5 plis.
+   - la raison est structurelle, pas statistique. Tout l echantillon
+     tient dans UNE SEULE tendance baissiere ETH/BTC. Une direction
+     de gradient qui ne change pas parce que le regime ne change
+     pas se reproduit d un pli au suivant sans qu aucune
+     information ne soit en jeu.
+   - donc un accord doit se lire CONTRE LE CONTROLE, pas contre
+     50%. Aucun signal de ce groupe ne bat H03, et le depasser
+     serait la seule facon de montrer qu il apporte autre chose que
+     la persistance du regime.
+  Le biais 'un seul regime' figure aussi dans le bloc final. Il y
+  est une declaration ; ici il est demontre, par la mesure qui le
+  demontre. C est la difference entre avouer une limite et la
+  chiffrer.
+  Ce que le controle ne dit PAS : il n annule pas les verdicts. H03
+  est lui-meme REJETE sur sa propre direction enregistree. Un controle
+  qui echoue au reste de la regle reste un etalon d accord, pas un
+  signal, et il n est jamais compte comme une reussite.
+
+CE QUE CE RUN NE MONTRE PAS
+--------------------------------------------------------------------------
+  Le fait etabli n.4 du projet - le signe s inverse selon la cible -
+  est enregistre ici comme PREDICTION : H01 (+1 sur eth_btc) contre H08
+  (-1 sur alt_eth*). Ce couple n a pas ete remesure par ce run :
+    H01 eth_btc    NON_TESTABLE, 3 plis sur 11 fenetres decoupees
+    H08 alt_eth*   NON_TESTABLE, 3 plis sur 11 fenetres decoupees
+  Une inversion exige DEUX cotes mesures. Un seul cote ne dit rien sur
+  une inversion, quel que soit son signe. H10 mesure -1 contre +1
+  attendu : cela falsifie la regle Tier A sur alt_eth*, et rien de plus.
+  Signaux SCORES sur au moins deux cibles avec une direction
+  identifiable de chaque cote :
+    Fear & Greed         H04 eth_btc +1 (6+/3-) | H10 alt_eth* -1 (3+/4-)  ->  signes opposes
+    dominance ETH        H02 eth_btc -1 (0+/4-) | H09 alt_eth* +1 (4+/1-)  ->  signes opposes
+  Ces majorites sont DESCRIPTIVES : aucune n a ete testee contre une
+  nulle, et chacune de ces hypotheses a par ailleurs ete REJETEE sur
+  sa propre direction enregistree. L inversion visible ici contredit
+  donc ce qui etait ecrit, elle ne le confirme pas.
+
+BIAIS A DECLARER, VALABLES POUR CHAQUE LIGNE CI-DESSUS
+--------------------------------------------------------------------------
+  - panier alt SANS SOL/SUI/HYPE - biais de construction.
+    Lignes concernees : H08, H09, H10, H11. Elles portent sur le panier
+    mesurable, pas sur la rotation qu on trade. La marque * est
+    repetee dans chaque tableau pour qu une ligne citee seule la
+    garde avec elle.
+  - fenetres forward chevauchantes : les plis ne sont pas independants,
+    ce qui rend le controle par melange indispensable et laisse le p
+    optimiste malgre tout.
+  - tout l echantillon tient dans une seule tendance baissiere ETH/BTC.
+    Ce biais n est pas seulement declare ici : il est MESURE par le
+    controle H03, qui atteint 100% d accord en predisant le niveau par
+    lui-meme. Voir la section CONTRE QUOI LIRE UN ACCORD WALK-FORWARD :
+    c est la que ce biais cesse d etre un aveu pour devenir un chiffre,
+    et c est ce chiffre - pas 50%% - qui est la reference des accords
+    imprimes plus haut.
+  - panier dominance de 14 a 24 actifs selon le jour : niveau biaise,
+    seuls les rangs sont utilisables.
+  - la cible eth_btc est l index rotations.json, pas analysis/
+    ethbtc.json ; ecart forward maximum mesure 1.63 pt (voir en-tete).
+  - toutes les hypotheses ci-dessus sont POST-HOC, et le registre le
+    dit. La premiere date ou l une d elles pourra etre jugee
+    preenregistree est le 2027-05-29.

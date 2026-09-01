@@ -1,6 +1,8 @@
 Etude par fourchettes - positionnement, pas declenchement
-  dominance derivee d un panier de 25 actifs : le NIVEAU est
-  biaise haut (~71%% contre ~59%% chez CoinGecko), la DYNAMIQUE non.
+  dominance derivee d un panier de 14 a 24 actifs selon le jour
+  (2800 jours mesures, mediane 23) : mediane btc_dom 64.6% sur ce
+  panier restreint. Le NIVEAU est donc biaise haut contre une
+  dominance tous-actifs, la DYNAMIQUE non.
   Toutes les bandes sont des quantiles, jamais des seuils absolus.
 
 

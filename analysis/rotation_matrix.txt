@@ -1,0 +1,494 @@
+BANC DE ROTATION - chaque signal contre chaque cible
+==========================================================================
+Statut : SHADOW. Ce banc ne gouverne rien, comme ladder.py.
+Genere par scripts/rotation_matrix.py - hors ligne, graine 20260901.
+* = panier alt SANS SOL/SUI/HYPE - biais de construction
+
+--- perimetre mesure dans ce run ---
+  cible eth_btc    2800 jours  2019-01-01 -> 2026-08-31
+  cible alt_eth*   2800 jours  2019-01-01 -> 2026-08-31   [panier alt SANS SOL/SUI/HYPE - biais de construction]
+  cible alt_btc*   2800 jours  2019-01-01 -> 2026-08-31   [panier alt SANS SOL/SUI/HYPE - biais de construction]
+  signal dominance BTC   2800 jours  2019-01-01 -> 2026-08-31  (utilisables apres percentile 365j : 2435)
+  signal dominance ETH   2800 jours  2019-01-01 -> 2026-08-31  (utilisables apres percentile 365j : 2435)
+  signal Fear & Greed    3130 jours  2018-02-01 -> 2026-08-31  (utilisables apres percentile 365j : 2765)
+  signal mvrv_z_score    1456 jours  2022-08-31 -> 2026-08-28  (utilisables apres percentile 365j : 1091)
+  signal ssr             1456 jours  2022-08-31 -> 2026-08-28  (utilisables apres percentile 365j : 1091)
+  signal nvt             1456 jours  2022-08-31 -> 2026-08-28  (utilisables apres percentile 365j : 1091)
+
+  candidats retenus : 6. Le banc fait 6 signaux x 3 cibles x 3
+  horizons = 54 comparaisons ; ce compte est verifiable seulement si
+  les ecarts sont annonces, donc les voici.
+  candidat ECARTE pour longueur insuffisante : aucun.
+  series presentes dans series.json et EXCLUES du banc par choix :
+    puell_multiple               mineurs, pas rotation - aucune these de rotation ne le mobilise
+    sth_realized_price           prix, pas oscillateur - son percentile suivrait la tendance BTC
+    fear_greed (dans series.json) double emploi : la version longue vient du cache F&G, 2018 -> 2026
+
+--- controle de coherence : eth_btc ici vs analysis/ethbtc.json ---
+  rotations.json['eth_btc'] vaut 6.09x le niveau de ethbtc.json :
+  ce sont deux bases differentes, pas la meme serie. Un facteur
+  constant s annule dans un rendement, ce qui se verifie :
+    correlation des rendements 90j : 0.9999 sur 2709 jours communs
+    ecart absolu median            : 0.21 pt
+  Les lignes eth_btc de ce banc sont donc comparables a
+  forward_study / band_study / walkforward / oos_test.
+
+--- biais declares, valables pour chaque ligne du rapport ---
+  1. panier alt SANS SOL/SUI/HYPE - biais de construction. Toute phrase sur la
+     'rotation alt' porte sur le panier mesurable, pas sur le trade.
+     Marque * sur chaque colonne, chaque ligne et chaque paragraphe
+     qui cite un chiffre alt.
+  2. Les trois cibles sont liees arithmetiquement (alt_btc* suit
+     alt_eth* x eth_btc) : une confirmation croisee vaut moins qu il
+     n y parait.
+  3. Fenetres forward chevauchantes : les observations ne sont pas
+     independantes, d ou le comptage d episodes partout.
+  4. Un percentile glissant 365j coute les 365 premiers jours de chaque
+     serie et efface l information de niveau. Aucune regle en seuil
+     absolu n est exprimable ici.
+  5. Panier dominance : 14 a 24 actifs selon le jour - le NIVEAU est
+     biaise, le percentile ne l est pas.
+  6. Les bandes sont d egale LARGEUR en percentile, pas d egal
+     EFFECTIF comme dans band_study.py. Occupation reelle en
+     section 2 : la bande haute n est pas un quintile.
+  7. Baseline = la fenetre percentile COMPLETE du couple, jours de
+     tir inclus. Elle est PLUS LARGE que celle de forward_study.py,
+     qui se restreint a [premier tir, dernier tir] : les deux modules
+     ne partagent PAS la meme convention. L ecart mesure sur les 18
+     couples de ce run va jusqu a 8.6 pts (voir colonne 'e90 tir'
+     en section 2), soit davantage que ce que ce banc sait detecter.
+     Les deux colonnes sont donc imprimees, plus l edge hors jours de
+     tir, et aucune n est designee comme 'la' convention.
+  8. Banc entierement IN-SAMPLE. Aucune periode n est tenue a l ecart.
+     Le walk-forward n est PAS un test hors echantillon : il refait
+     tourner la meme fenetre sur elle-meme. L echec hors echantillon
+     etabli par oos_test.py sur eth_btc n a PAS ete rejoue sur
+     alt_eth* / alt_btc*, faute d une troisieme periode disponible.
+     Ce banc decrit ce qui s est produit ; il ne teste aucune regle
+     choisie apres l avoir vu.
+
+
+=== 1. MATRICE - edge a 90j, en points de mediane ===
+
+  Edge = mediane de la BANDE HAUTE du signal (percentile >= 80) MOINS
+  la mediane de la meme fenetre. Baseline restreinte a la fenetre du
+  couple : comparer 2022-2026 a une baseline 2019-2026 fabriquerait
+  de l edge a partir d une simple difference de periode.
+  Le signe entre parentheses est celui du gradient (bande haute vs basse).
+  Colonnes * : panier alt SANS SOL/SUI/HYPE - biais de construction.
+
+  signal                      eth_btc           alt_eth*           alt_btc*
+  --------------------------------------------------------------------------
+  dominance BTC          +0.0 pts (-)       +1.6 pts (+)       +5.3 pts (+)
+  dominance ETH          +3.2 pts (+)       +1.2 pts (+)       +1.0 pts (-)
+  Fear & Greed           -1.2 pts (-)       -4.4 pts (-)       -8.6 pts (-)
+  mvrv_z_score           +2.8 pts (+)       -9.8 pts (-)       -8.4 pts (-)
+  ssr                    +0.7 pts (+)       -7.9 pts (-)       -4.9 pts (-)
+  nvt                    -0.9 pts (-)       +0.8 pts (+)       +0.6 pts (+)
+  --------------------------------------------------------------------------
+  CONTROLE niveau        +4.4 pts (+)      +12.0 pts (+)       -7.4 pts (-)
+  (le controle est le niveau de la cible elle-meme : retour a la
+   moyenne. Il n est pas un candidat et ne compte pas dans le banc.)
+
+
+=== 2. DETAIL PAR CIBLE ===
+
+--- occupation des bandes (identique d une cible a l autre) ---
+
+  Un decoupage a effectif egal donnerait 20% partout. Ici les bandes
+  sont d egale LARGEUR en percentile, donc l occupation mesure la
+  derive de la serie : sur une serie qui monte, la valeur du jour est
+  souvent la plus haute de sa fenetre glissante, son percentile se
+  colle a 100 et la bande haute enfle.
+
+  signal                  b1       b2       b3       b4 b5 (tir)
+  --------------------------------------------------------------
+  dominance BTC          21%      12%      16%      13%      37%
+  dominance ETH          28%      11%      15%      20%      27%
+  Fear & Greed           23%      16%      20%      18%      23%
+  mvrv_z_score           25%      12%      15%      19%      30%
+  ssr                    36%      10%      11%      11%      32%
+  nvt                    17%      20%      20%      20%      23%
+  CONTROLE eth_btc       33%      13%      14%      18%      22%
+  CONTROLE alt_eth*      56%      18%      12%       7%       8%
+  CONTROLE alt_btc*      48%      15%      13%      11%      14%
+
+  band_study.py utilise des quantiles a EFFECTIF egal ; ce banc non.
+  Les deux modules ne decoupent donc pas le meme objet, et c est ce
+  banc qui s ecarte du quintile - le choix a ete fait pour coller aux
+  coupes de walkforward.direction().
+
+  Cette occupation est la cause MECANIQUE du double artefact des deux
+  portes d independance, qui echouent en sens opposes : une bande qui
+  tient un tiers des jours est etalee sur tout l historique (donc le
+  compte d episodes ne rejette plus personne) tout en contenant
+  quelques series tres longues (donc la concentration rejette tout le
+  monde). Les compteurs exacts sont en section 6.
+
+--- cible eth_btc ---
+  signal               n  ep.   top3      e30      e60      e90   e90 tir  e90 hors  hit90  mono signe   WF (plis)     decal.     ecart melange
+  ------------------------------------------------------------------------------------------------------------------------------------------------------
+  dominance BTC      897   17    78%     -0.2     +1.4     +0.0      +0.0      +0.0      41%    3/4     -  100% (3/3)     52+-3%       +48    49%
+  dominance ETH      648   17    74%     -1.6     -2.9     +3.2      +2.2      +4.1      50%    2/4     +  100% (4/4)     47+-3%       +53    50%
+  Fear & Greed       631   23    54%     -0.3     -1.5     -1.2      -2.7      -1.8      32%    3/4     -   22% (2/9)     52+-2%       -29    47%
+  mvrv_z_score       319    6    97%     +1.6     +1.2     +2.8      +0.7      +3.3      33%    3/4     +    0% (0/1)     56+-4%       -56    53%
+  ssr                344    4   100%     +0.5     -0.3     +0.7      +4.7      +1.0      30%    2/4     +   - (0 pli)     54+-5%         -    49%
+  nvt                249   18    53%     +0.0     -0.5     -0.9      -0.9      -1.0      30%    3/4     -   - (0 pli)     51+-4%         -    52%
+  CONTROLE niveau    536   12    75%     -1.9     -2.0     +4.4      +4.0      +5.3      52%    3/4     +  100% (5/5)     50+-3%       +50    50%
+  ep. = episodes distincts (7 jours de calme les separent);
+  top3 = part de la bande haute concentree dans ses 3 plus gros
+  episodes; au-dela de 50% l edge est un souvenir, pas une regle.
+  e90  = baseline sur TOUTE la fenetre percentile du couple.
+  e90 tir = baseline restreinte a [premier tir, dernier tir], la
+  convention reelle de forward_study.py. Les deux sont imprimees
+  parce qu elles different jusqu a 8.6 pts sur ce run et qu une
+  seule d entre elles annoncee comme 'heritee' serait fausse.
+  e90 hors = meme edge contre les jours NON declenches de la
+  fenetre : la dilution de la baseline par les jours de tir.
+  WF = accord walk-forward AVEC son nombre de plis; moins de 3
+  plis ne se lit pas. decal./ecart = null par decalage circulaire
+  (le null de reference, coherent avec celui de l edge), sur 500
+  tirages, imprime avec +-2 erreurs-types de Monte-Carlo; melange
+  = le null de walkforward.py, pour comparaison. Un ecart suivi de
+  '~' est a moins de 2 erreurs-types de la barre de +15 : ce
+  couple-la est decide par la graine, pas par la mesure.
+
+--- cible alt_eth*   [panier alt SANS SOL/SUI/HYPE - biais de construction] ---
+  signal               n  ep.   top3      e30      e60      e90   e90 tir  e90 hors  hit90  mono signe   WF (plis)     decal.     ecart melange
+  ------------------------------------------------------------------------------------------------------------------------------------------------------
+  dominance BTC      897   17    78%     +2.7     +1.0     +1.6      +1.6      +2.0      42%    2/4     +   33% (1/3)     54+-3%       -20    47%
+  dominance ETH      648   17    74%     -1.3     +2.7     +1.2      +2.1      +1.8      33%    2/4     +   60% (3/5)     53+-3%        +7    52%
+  Fear & Greed       631   23    54%     +0.5     -2.7     -4.4      -3.0      -6.0      24%    4/4     -   29% (2/7)     52+-2%       -24    46%
+  mvrv_z_score       319    6    97%     -3.4     -4.8     -9.8      -1.9     -11.9      32%    3/4     -    0% (0/2)     41+-4%       -41    55%
+  ssr                344    4   100%     -0.7     -2.3     -7.9     -16.6      -9.6      35%    2/4     -   50% (1/2)     44+-5%        +6    48%
+  nvt                249   18    53%     +0.0     +2.1     +0.8      +0.8      +0.9      46%    3/4     +   33% (1/3)     58+-4%       -25    47%
+  CONTROLE niveau    184    4    99%    +11.2    +22.9    +12.0     +10.2     +12.3      52%    3/4     +   50% (2/4)     57+-3%        -7    48%
+  ep. = episodes distincts (7 jours de calme les separent);
+  top3 = part de la bande haute concentree dans ses 3 plus gros
+  episodes; au-dela de 50% l edge est un souvenir, pas une regle.
+  e90  = baseline sur TOUTE la fenetre percentile du couple.
+  e90 tir = baseline restreinte a [premier tir, dernier tir], la
+  convention reelle de forward_study.py. Les deux sont imprimees
+  parce qu elles different jusqu a 8.6 pts sur ce run et qu une
+  seule d entre elles annoncee comme 'heritee' serait fausse.
+  e90 hors = meme edge contre les jours NON declenches de la
+  fenetre : la dilution de la baseline par les jours de tir.
+  WF = accord walk-forward AVEC son nombre de plis; moins de 3
+  plis ne se lit pas. decal./ecart = null par decalage circulaire
+  (le null de reference, coherent avec celui de l edge), sur 500
+  tirages, imprime avec +-2 erreurs-types de Monte-Carlo; melange
+  = le null de walkforward.py, pour comparaison. Un ecart suivi de
+  '~' est a moins de 2 erreurs-types de la barre de +15 : ce
+  couple-la est decide par la graine, pas par la mesure.
+
+--- cible alt_btc*   [panier alt SANS SOL/SUI/HYPE - biais de construction] ---
+  signal               n  ep.   top3      e30      e60      e90   e90 tir  e90 hors  hit90  mono signe   WF (plis)     decal.     ecart melange
+  ------------------------------------------------------------------------------------------------------------------------------------------------------
+  dominance BTC      897   17    78%     +0.4     +2.0     +5.3      +5.3      +7.2      46%    4/4     +   80% (4/5)     54+-2%       +26    50%
+  dominance ETH      648   17    74%     -2.2     +3.5     +1.0      +1.1      +1.2      34%    2/4     -   75% (3/4)     48+-3%       +27    50%
+  Fear & Greed       631   23    54%     -1.9     -7.1     -8.6      -8.8     -10.2      22%    2/4     -   33% (1/3)     52+-2%       -18    46%
+  mvrv_z_score       319    6    97%     -1.9     -3.4     -8.4      -9.0     -10.0      11%    2/4     -   67% (2/3)     51+-4%      +16~    46%
+  ssr                344    4   100%     -1.4     -2.2     -4.9      -5.2      -6.4      12%    2/4     -    0% (0/1)     52+-5%       -52    50%
+  nvt                249   18    53%     -0.8     +0.2     +0.6      +0.6      +0.8      27%    3/4     +   - (0 pli)     47+-5%         -    45%
+  CONTROLE niveau    333    9    77%     -6.9     -7.5     -7.4      -7.0      -8.4      13%    3/4     -  100% (2/2)     51+-3%       +49    54%
+  ep. = episodes distincts (7 jours de calme les separent);
+  top3 = part de la bande haute concentree dans ses 3 plus gros
+  episodes; au-dela de 50% l edge est un souvenir, pas une regle.
+  e90  = baseline sur TOUTE la fenetre percentile du couple.
+  e90 tir = baseline restreinte a [premier tir, dernier tir], la
+  convention reelle de forward_study.py. Les deux sont imprimees
+  parce qu elles different jusqu a 8.6 pts sur ce run et qu une
+  seule d entre elles annoncee comme 'heritee' serait fausse.
+  e90 hors = meme edge contre les jours NON declenches de la
+  fenetre : la dilution de la baseline par les jours de tir.
+  WF = accord walk-forward AVEC son nombre de plis; moins de 3
+  plis ne se lit pas. decal./ecart = null par decalage circulaire
+  (le null de reference, coherent avec celui de l edge), sur 500
+  tirages, imprime avec +-2 erreurs-types de Monte-Carlo; melange
+  = le null de walkforward.py, pour comparaison. Un ecart suivi de
+  '~' est a moins de 2 erreurs-types de la barre de +15 : ce
+  couple-la est decide par la graine, pas par la mesure.
+
+
+=== 3. LE SIGNE S INVERSE-T-IL ENTRE CIBLES ? ===
+
+  C est la question qui a motive ce banc. Un signal dont le signe
+  change de cible en cible ne peut pas etre cable une fois pour toutes.
+  Les colonnes * portent sur le panier alt SANS SOL/SUI/HYPE : une
+  inversion lue sur ces colonnes est une inversion contre CE panier.
+
+  signal              eth_btc   alt_eth*   alt_btc*   lecture
+  --------------------------------------------------------------------------
+  dominance BTC             -          +          +   SIGNE INSTABLE
+  dominance ETH             +          +          -   SIGNE INSTABLE
+  Fear & Greed              -          -          -   signe stable
+  mvrv_z_score              +          -          -   SIGNE INSTABLE
+  ssr                       +          -          -   SIGNE INSTABLE
+  nvt                       -          +          +   SIGNE INSTABLE
+
+  5 signaux sur 6 changent de signe selon la cible.
+  Un signe stable n est PAS une preuve d edge : les trois cibles
+  partagent une jambe, un signe constant peut n etre que ce partage.
+
+
+=== 4. COMPARAISONS MULTIPLES - ce que le hasard produit ici ===
+
+  Ce banc contient 6 signaux x 3 cibles x 3 horizons = 54
+  comparaisons, dont 36 portent sur les cibles alt*. Quelques-unes
+  paraitront excellentes sans raison. Plutot que de l affirmer, on le
+  mesure : la serie du signal est decalee circulairement contre les
+  cibles, 2000 fois, et toute la matrice est recalculee a chaque tirage.
+  Le decalage detruit l alignement avec le futur mais CONSERVE l
+  autocorrelation - un melange simple pretendrait que chaque jour est
+  un tirage independant et flatterait le banc.
+
+  cellules observees passant edge >= 3 pts : 3 / 54
+  memes cellules sous decalage, SANS aucun signal dedans :
+      mediane 7 cellules, 95e centile 15 cellules
+
+  Autrement dit le banc produit deja, a vide, autant de cellules
+  d apparence excellente qu il n en observe reellement. Compter les
+  cellules qui passent n apprend donc rien.
+
+  cellules a p brut <= 0.05              : 1 / 54
+  attendu par hasard a ce seuil          : 2.7 cellules
+  survivantes, Westfall-Young min-p      : 0 / 54
+  survivantes, variante max-z            : 0 / 54
+
+  Tout p brut ici est un comptage sur 2000 tirages : sa resolution ne
+  descend pas sous 0.0005, et chaque valeur est imprimee avec son
+  intervalle de Monte-Carlo (+- 2 erreurs-types). Citer un p brut a
+  trois decimales sans cet intervalle, c est citer le grain du tirage.
+
+  Deux corrections, sur LES MEMES tirages :
+  - Westfall-Young min-p (la methode standard sans distribution) :
+    chaque tirage est classe dans le null de SA cellule, le minimum
+    sur toute la matrice fait la statistique du tirage. C est le
+    chiffre de reference.
+    p brut critique : 0.0020 - en dessous, le minimum du banc ne bat
+    la cellule qu une fois sur vingt.
+    plancher atteignable du p corrige : 0.013, avec 54 cellules
+    scorables sur 2000 tirages. Il est bien sous le seuil de 0.05,
+    donc l absence de survivant n est pas un artefact du nombre
+    de tirages - la procedure POUVAIT laisser passer une cellule.
+  - variante max-z : chaque cellule ramenee a son propre ecart robuste,
+    puis maximum sur le banc. Elle est PLUS DURE ici, parce que le null
+    d une cellule mince a des queues epaisses : un seul tirage extreme
+    fixe la barre des 54. Elle n est pas Westfall-Young et n en porte
+    pas le nom.
+    z critique : 4.96 ; z maximum observe sous le null : 6.92
+
+  --- effet minimum detectable (ce que ce banc NE PEUT PAS voir) ---
+
+  Cellule la mieux placee : dominance BTC / alt_btc* a 90j, edge observe +5.3 pts.
+  Son null a un ecart robuste de 3.15 pts autour de +0.00.
+  Barre Westfall-Young (la porte du banc) : il lui faudrait
+  +6.1 pts a 90j, contre +5.3 observes.
+  Barre max-z (z critique 4.96, variante plus dure) : +15.7 pts.
+
+  CE BANC NE PEUT RIEN DETECTER EN DESSOUS DE ~6 PTS A 90J
+  SOUS WESTFALL-YOUNG, ~16 PTS SOUS LA VARIANTE MAX-Z.
+  C est la limite honnete du run. Un effet reel de 4 ou 5 pts
+  existerait sans que ce banc puisse le distinguer du bruit,
+  et l absence de survivant ne dit rien contre lui.
+
+  Sur les 54 cellules du banc, cette barre Westfall-Young va
+  de +1.7 a +38.0 pts, mediane +8.0 pts. Une cellule mince
+  paie donc bien plus cher qu une cellule epaisse.
+
+  Et ces deux barres ne concernent que la porte de multiplicite.
+  La batterie complete n a PAS d effet minimum detectable fini :
+  la porte de concentration est echouee par les 18 couples quelle
+  que soit la taille de l edge (section 6), donc aucun edge, si
+  grand soit-il, ne suffirait a lui seul a faire passer un couple.
+
+  Lecture : une cellule qui ne franchit pas ce seuil est
+  indiscernable du bruit de ce banc - ce qui ne veut pas dire qu il
+  n y a rien, seulement que ce banc-ci ne le verrait pas.
+  Aucun gagnant n est designe sans avoir aussi passe le walk-forward.
+
+
+=== 5. VERDICT PAR SIGNAL ===
+
+  Portes exigees, toutes ensemble, a 90j :
+    edge          >= 3 pts contre la baseline de la meme fenetre
+    episodes      >= 4 episodes distincts
+    concentration <= 50% de la bande haute dans ses 3 plus gros
+    monotonie     >= 3/4 paires de bandes alignees
+    walk-forward  >= +15 pts d ecart contre son propre null par
+                  decalage, sur au moins 3 plis
+    multiplicite  p Westfall-Young <= 0.05
+
+  dominance BTC
+    eth_btc    echoue  p brut 0.4393 +-0.0222  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, multiplicite
+    alt_eth*   echoue  p brut 0.3543 +-0.0214  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, monotonie, walkforward, multiplicite
+    alt_btc*   echoue  p brut 0.0250 +-0.0070  WY 0.560  max-z 0.865
+               echoue sur : concentration, multiplicite
+  dominance ETH
+    eth_btc    echoue  p brut 0.4233 +-0.0221  WY 1.000  max-z 1.000
+               echoue sur : concentration, monotonie, multiplicite
+    alt_eth*   echoue  p brut 0.3368 +-0.0211  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, monotonie, walkforward, multiplicite
+    alt_btc*   echoue  p brut 0.3623 +-0.0215  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, monotonie, multiplicite
+  Fear & Greed
+    eth_btc    echoue  p brut 0.6487 +-0.0213  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, walkforward, multiplicite
+    alt_eth*   echoue  p brut 0.8561 +-0.0157  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, walkforward, multiplicite
+    alt_btc*   echoue  p brut 0.9935 +-0.0036  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, monotonie, walkforward, multiplicite
+  mvrv_z_score
+    eth_btc    echoue  p brut 0.2184 +-0.0185  WY 0.999  max-z 1.000
+               echoue sur : edge, concentration, walkforward, multiplicite
+    alt_eth*   echoue  p brut 0.8356 +-0.0166  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, walkforward, multiplicite
+    alt_btc*   echoue  p brut 0.9905 +-0.0043  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, monotonie, multiplicite
+  ssr
+    eth_btc    echoue  p brut 0.4123 +-0.0220  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, monotonie, walkforward, multiplicite
+    alt_eth*   echoue  p brut 0.8091 +-0.0176  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, monotonie, walkforward, multiplicite
+    alt_btc*   echoue  p brut 0.8466 +-0.0161  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, monotonie, walkforward, multiplicite
+  nvt
+    eth_btc    echoue  p brut 0.8296 +-0.0168  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, walkforward, multiplicite
+    alt_eth*   echoue  p brut 0.4038 +-0.0219  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, walkforward, multiplicite
+    alt_btc*   echoue  p brut 0.3408 +-0.0212  WY 1.000  max-z 1.000
+               echoue sur : edge, concentration, walkforward, multiplicite
+
+  signal           verdict                            signe
+  --------------------------------------------------------------------------
+  dominance BTC    INUTILE                            instable entre cibles
+  dominance ETH    INUTILE                            instable entre cibles
+  Fear & Greed     INUTILE                            stable
+  mvrv_z_score     INUTILE                            instable entre cibles
+  ssr              INUTILE                            instable entre cibles
+  nvt              INUTILE                            instable entre cibles
+
+  Le CONTROLE (niveau de la cible, retour a la moyenne) est juge
+  sans la porte de multiplicite : il n a pas ete tire au sort avec
+  les 54 cellules, donc il n a pas de p corrige comparable.
+    CONTROLE eth_btc    12 episodes, 75% dans les 3 plus gros, echoue sur : concentration
+    CONTROLE alt_eth*   4 episodes, 99% dans les 3 plus gros, echoue sur : concentration, walkforward
+    CONTROLE alt_btc*   9 episodes, 77% dans les 3 plus gros, echoue sur : edge, concentration, walkforward
+
+  Ou mord reellement le plancher de 3 plis :
+  DECISIF (le couple aurait franchi l ecart sans le plancher) :
+    CONTROLE alt_btc*            2/2 pli(s), ecart +49
+  Plancher atteint mais sans effet (l ecart echouait de toute facon),
+  7 couple(s) : mvrv_z_score / alt_eth* (0/2), mvrv_z_score / eth_btc (0/1), nvt / alt_btc* (0/0), nvt / eth_btc (0/0), ssr / alt_btc* (0/1), ssr / alt_eth* (1/2), ssr / eth_btc (0/0)
+  Les 7 autres echecs walk-forward sont des echecs d ECART contre
+  leur propre null, a 3 plis ou plus.
+  A noter dans l autre sens : dominance BTC / eth_btc, mvrv_z_score / alt_btc*~
+  franchi(ssen)t le plancher a exactement 3 plis et PASSE(NT) la
+  porte walk-forward. Leurs echecs sont ailleurs - dire que le
+  plancher les elimine serait faux. Un '~' signale un ecart a
+  moins de 2 erreurs-types de la barre : ce passage-la tient a la
+  graine et ne doit pas etre lu comme un resultat.
+
+  Reconciliation avec walkforward.py (les deux ne donnent PAS le
+  meme compte de plis, et l import de wf.direction ne le garantit pas) :
+    Fear & Greed   / eth_btc : 2/9 ici, 1/9 par walkforward.walk
+    dominance BTC  / eth_btc : 3/3 ici, 3/3 par walkforward.walk
+    Cause : le percentile est calcule ici sur TOUTES les dates de la
+    serie, et dans walkforward.walk sur les seules dates deja
+    filtrees par le forward. Les jours utilisables different, donc
+    les plis ne coupent pas au meme endroit. Le resultat etabli de
+    walkforward.txt (F&G : 1 pli sur 9) n est pas recalcule ici ; il
+    n est pas contredit non plus, c est un decoupage different.
+    Note : walkforward.py mesure en plus sur analysis/ethbtc.json,
+    pas sur rotations.json['eth_btc'] - seconde source d ecart.
+
+  Coherence des deux nulls (l incoherence a ete mesuree, pas plaidee) :
+  le null de l edge est un DECALAGE circulaire, celui du walk-forward
+  herite de walkforward.py est un MELANGE - dans un module dont l
+  argument central est qu un melange flatte un banc. Les deux ont donc
+  ete calcules pour chaque couple.
+    porte walk-forward identique sous les deux nulls : 21 / 21 couples
+    dont indecidables (ecart a moins de 2 erreurs-types de la
+    barre +15, donc tranches par la graine et non par la
+    mesure) : mvrv_z_score / alt_btc*
+    couples dont le VERDICT change (toutes les autres portes etant
+    franchies) : 0. L incoherence est reelle, elle a ete mesuree,
+    et elle ne deplace aucune conclusion de ce run. Le decalage reste
+    le null de reference : c est celui qui conserve l autocorrelation.
+
+
+=== 6. REPONSE : existe-t-il des signaux specifiques a une rotation ? ===
+
+  Rappel : deux des trois cibles reposent sur le panier alt* -
+  panier alt SANS SOL/SUI/HYPE - biais de construction. Tout ce qui suit sur
+  alt_eth* / alt_btc* porte sur ce panier, pas sur le marche alt.
+
+  Inutiles sur les trois   : dominance BTC, dominance ETH, Fear & Greed, mvrv_z_score, ssr, nvt
+
+  Reponse : NON. Aucun des 18 couples (signal, cible) ne franchit
+  les six portes.
+
+  Ou ils tombent, sur 18 couples :
+    concentration  echoue 18 fois
+    multiplicite   echoue 18 fois
+    edge           echoue 16 fois
+    walkforward    echoue 13 fois
+    monotonie      echoue 9 fois
+
+  Les deux compteurs a lire ensemble : concentration echoue 18/18
+  et episodes echoue 0/18. Ce ne sont pas deux mesures
+  independantes qui concordent : c est la meme cause mecanique -
+  une bande haute qui tient bien plus d un cinquieme des jours
+  (section 2) est a la fois etalee sur tout l historique et
+  composee de longues series. Les deux portes d independance sont
+  devenues non informatives, en sens opposes.
+
+  Le verdict repose-t-il sur une seule porte trop dure ?
+
+  Retirer UNE porte ne peut rien apprendre ici : concentration et multiplicite echouent
+  chacune sur les 18 couples, donc au moins une survit a toute
+  suppression unique et bloque tout. C est un theoreme sur les
+  compteurs ci-dessus, pas une mesure - et de fait, drop-1 donne
+  0 couple(s) partout.
+
+  La premiere question informative est donc drop-2 :
+    sans concentration + multiplicite   1 couple(s) : dominance BTC / alt_btc*
+    les 14 autres combinaisons de deux portes : 0 couple.
+
+  Autrement dit le verdict ne tient pas a une porte unique : il
+  faut en retirer deux, et precisement les deux qui echouent
+  partout, pour faire apparaitre un survivant.
+
+  Le couple le moins mauvais est dominance BTC / alt_btc* a 90j,
+  cible construite sur le panier alt sans SOL/SUI/HYPE,
+  a p Westfall-Young 0.560 contre un seuil de 0.05.
+  Cela ne signifie PAS que rien n en approche, et le dire
+  serait faux : son edge observe est +5.3 pts et la barre de
+  detection de ce banc est +6.1 pts (section 4). Il en est
+  a 87% du chemin, pas a l autre bout du monde. Ce qui
+  manque est de la puissance, pas seulement du signal.
+
+  L illustration exacte du piege annonce : dominance BTC / alt_btc* affiche
+  +5.3 pts a 90j et un p brut de 0.0250 +-0.0070 (plancher de
+  resolution 0.0005 sur 2000 tirages), ce qui se lirait comme une
+  decouverte. Corrige pour les 54 comparaisons du banc, son p
+  devient 0.560 (Westfall-Young) et 0.865 (variante max-z). C est
+  la meme cellule, la meme mesure ; seul le nombre de fois ou
+  l on a regarde a change.
+
+  Ce qui EST etabli et reste utile :
+  - le signe depend de la cible pour 5 des 6 signaux. Cabler un
+    signal sans dire pour quelle rotation est une erreur de type,
+    pas une approximation.
+  - la specificite reste la bonne hypothese a tester ; ce banc dit
+    seulement qu aucun candidat actuel ne la realise A CE NIVEAU DE
+    PUISSANCE, qui est faible.
+  - la prochaine version utile de ce banc n est pas un signal de
+    plus : c est une bande a effectif egal et un horizon unique
+    choisi d avance, pour cesser de payer 54 comparaisons.
+
+  Ce banc ne gouverne rien. Il ne modifie ni le gate 10 dimensions,
+  ni le Pivot Ladder, ni aucune allocation.
