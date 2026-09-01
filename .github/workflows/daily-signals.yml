@@ -59,6 +59,8 @@ jobs:
           COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
           GLASSNODE_API_KEY: ${{ secrets.GLASSNODE_API_KEY }}
           LUNARCRUSH_API_KEY: ${{ secrets.LUNARCRUSH_API_KEY }}
+          # COINGLASS_API_KEY - cycle-top aggregate, TRACKED only.
+          COINGLASS_API_KEY: ${{ secrets.COINGLASS_API_KEY }}
         run: python scripts/fetch_signals.py
 
       - name: Commit updated data

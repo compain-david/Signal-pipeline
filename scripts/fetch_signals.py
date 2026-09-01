@@ -342,6 +342,54 @@ def fetch_puell_multiple():
     }
 
 
+def fetch_peak_indicators():
+    """Coinglass bull-market-peak-indicator - TRACKED ONLY, never a vote.
+
+    Aggregates ~30 cycle-top indicators, each with its own target and a
+    hit_status saying whether that target is met. The natural summary is
+    "N of M targets hit", which is exactly the shape of a sell gate - and
+    that is precisely why it must not be wired into one yet.
+
+    WHY TRACK AND NOT TIER-1, deliberately:
+    These are Coinglass's thresholds, backtested by nobody here. Adopting them
+    as votes would empty ADOPTION_RULE of meaning the day after it was
+    written - the rule exists to stop exactly this. They accumulate history in
+    the log while being evaluated, which is the same sequence the 10-dimension
+    gate went through.
+
+    It also does NOT solve the sell gate's real gap: LTH supply remains
+    unsourced, so Tier-1 #1 is still unreadable and the 2-of-3 rule still
+    cannot reach 2.
+
+    Endpoint confirmed present on every paid tier including HOBBYIST at
+    $29/mo; there is no free tier. Daily cache refresh upstream, which matches
+    this pipeline's cadence.
+    """
+    key = os.environ.get("COINGLASS_API_KEY")
+    if not key:
+        return {"status": "no_key", "signal": None, "vote": None,
+                "note": "Coinglass HOBBYIST $29/mo. Tracked only - its "
+                        "thresholds have not passed ADOPTION_RULE."}
+    data = _get("https://open-api-v4.coinglass.com/api/bull-market-peak-indicator",
+                headers={"CG-API-KEY": key}, retries=2)
+    rows = data.get("data") or []
+    if not rows:
+        raise ValueError("coinglass returned no indicators")
+
+    hit = [r for r in rows if r.get("hit_status")]
+    return {
+        "signal": len(hit),
+        "indicators_total": len(rows),
+        "indicators_hit": len(hit),
+        "hit_names": [r.get("indicator_name") for r in hit][:12],
+        "source": "coinglass (paid)",
+        "vote": None,   # tracked only - see docstring
+        "note": "%d of %d cycle-top targets hit. Context for the brief, not a "
+                "vote: these thresholds are Coinglass's, unvalidated here."
+                % (len(hit), len(rows)),
+    }
+
+
 def fetch_nupl():
     """Net Unrealised Profit/Loss - RISK axis, not rotation.
 
@@ -758,6 +806,7 @@ def main():
         "mayer_multiple": safe_fetch(fetch_mayer_multiple),
         "puell_multiple": safe_fetch(fetch_puell_multiple),
         "nupl": safe_fetch(fetch_nupl),
+        "peak_indicators": safe_fetch(fetch_peak_indicators),
         # dimension 3
         "fear_greed": safe_fetch(fetch_fear_greed),
         "social_volume": safe_fetch(fetch_social_volume),
