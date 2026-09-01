@@ -1,6 +1,6 @@
 # Signal snapshot — 2026-09-01
 
-Generated 2026-09-01T17:49:12.160873+00:00 · schema v4
+Generated 2026-09-01T18:10:12.354757+00:00 · schema v4
 
 > **DEGRADED RUN** — 0 failed, 1 stale. Check provenance before using these numbers.
 
@@ -13,7 +13,7 @@ Generated 2026-09-01T17:49:12.160873+00:00 · schema v4
 | Miners · Puell | 1.0045 | live |
 | Sentiment · F&G | 69 | live |
 | Supply · ETH netflow 7d | -156,735 | live |
-| BTC dominance % | 59.05 | live |
+| BTC dominance % | 59.04 | live |
 
 Not automatable: ETF net flows (no public API), LTH supply (no free source found).
 
@@ -25,7 +25,7 @@ Not automatable: ETF net flows (no public API), LTH supply (no free source found
 | T | **0.2** |
 | Coverage | 71.43% (floor 70%) |
 | Measurable | yes |
-| Reason | held - 6 of 14 minimum days in state |
+| Reason | held - 7 of 14 minimum days in state |
 
 Unsigned strategy update: this ladder does not govern. Pending: Sign the versioned strategy update: 25% ETH cap, four-state ladder; Confirm the six thresholds: 0.55/0.45 ETH, 0.70/0.60 ALT, 2 weeks, 70% floor; Confirm the ladder can never enter USDT on its own authority
 
@@ -41,9 +41,9 @@ Unsigned strategy update: this ladder does not govern. Pending: Sign the version
 
 | Signal | Dim | Tier | Value | Vote | Provenance |
 |---|---|---|---|---|---|
-| eth_btc_momentum | 1 | A | 5.95 | no | live |
-| btc_dominance | 1 | track | 59.05 | no | live |
-| alt_dominance | 1 | track | 29.81 | — | FAILED (building) |
+| eth_btc_momentum | 1 | A | 5.71 | no | live |
+| btc_dominance | 1 | track | 59.04 | no | live |
+| alt_dominance | 1 | track | 29.85 | — | FAILED (building) |
 | altseason_index | 1 | track | — | — | not automated |
 | mvrv_z_score | 2 | A | 0.8514 | no | live |
 | nvt | 2 | A | 19.32 | no | live |
@@ -56,7 +56,7 @@ Unsigned strategy update: this ladder does not govern. Pending: Sign the version
 | social_volume | 3 | track | — | — | not automated |
 | eth_etf_flows | 5 | A | — | — | not automated |
 | stablecoin_supply_ratio | 6 | A | 6.1881 | no | live |
-| alt_funding_rates | 7 | A | 4.13 | no | live |
+| alt_funding_rates | 7 | A | 3.94 | no | live |
 | exchange_netflows | 9 | A | -156734.73 | YES | live |
 | sopr | 9 | track | 1.0046 | — | live |
 | sth_realized_price | 10 | A | 69979.57 | — | STALE (stale) |
