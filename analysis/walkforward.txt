@@ -1,0 +1,35 @@
+Validation walk-forward - horizon 90 jours, cible ETH/BTC
+  fit sur une fenetre, verification sur la suivante, on avance.
+  Le controle melange est la seule reference qui compte : deux
+  directions coincident une fois sur deux par hasard.
+
+
+=== percentile glissant 365j | train 365j | test 180j ===
+
+  signal                       accord      melange      ecart
+  ------------------------------------------------------------
+  dominance BTC              2 plis seulement
+  dominance ETH               100% (4/4)       54%        46  <--
+  niveau ETH/BTC              100% (4/4)       59%        41  <--
+  Fear & Greed                 11% (1/9)       51%       -40
+  mvrv_z_score               1 plis seulement
+  stablecoin_supply_ratio    0 plis seulement
+  nvt                        0 plis seulement
+
+
+=== percentile glissant 730j | train 540j | test 180j ===
+
+  signal                       accord      melange      ecart
+  ------------------------------------------------------------
+  dominance BTC              1 plis seulement
+  dominance ETH               100% (3/3)       41%        59  <--
+  niveau ETH/BTC             2 plis seulement
+  Fear & Greed                 33% (1/3)       59%       -25
+  mvrv_z_score               0 plis seulement
+  stablecoin_supply_ratio    0 plis seulement
+  nvt                        0 plis seulement
+
+
+Lecture : seul un ecart nettement positif contre le melange
+indique un signal stable. Un accord de 60%% contre un melange a
+58%% ne vaut rien, quelle que soit l allure du gradient brut.

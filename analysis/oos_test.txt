@@ -1,0 +1,78 @@
+Test hors echantillon de l hypothese des fourchettes
+  horizon 90 jours, cible ETH/BTC
+  apprentissage <= 2023-12-31   test >= 2024-01-01
+
+
+=== 1. BANDES FIXES apprises sur 2019-2023 ===
+  bornes : ['50.6', '53.6', '60.1', '66.8']
+
+  apprentissage
+    bande 1    n= 365 ep=  7  median    -5.2%  hit  32%
+    bande 2    n= 365 ep= 16  median    -2.4%  hit  39%
+    bande 3    n= 365 ep= 10  median    -7.1%  hit  23%
+    bande 4    n= 365 ep=  9  median    +1.9%  hit  58%
+    bande 5    n= 366 ep=  7  median   +19.2%  hit  84%
+    monotonie : 3/4
+
+  TEST
+    -          echantillon insuffisant
+    -          echantillon insuffisant
+    -          echantillon insuffisant
+    bande 4    n= 258 ep=  5  median   -16.8%  hit  13%
+    bande 5    n= 625 ep=  7  median    -7.3%  hit  31%
+
+  -> trois bandes vides en test: la dominance a derive vers le
+     haut et n est jamais redescendue. Les niveaux ne transferent pas.
+
+
+=== 2. PERCENTILE GLISSANT 365j ===
+
+  apprentissage
+    p00-20     n= 454 ep=  8  median    -1.2%  hit  48%
+    p20-40     n= 186 ep= 15  median    +6.0%  hit  70%
+    p40-60     n= 243 ep= 20  median    +7.0%  hit  62%
+    p60-80     n= 178 ep= 21  median    -0.2%  hit  48%
+    p80-100    n= 400 ep= 11  median    -1.8%  hit  42%
+    monotonie : 2/4
+
+  TEST
+    p00-20     n=  50 ep=  3  median   -12.9%  hit   2%
+    p20-40     n= 108 ep=  6  median    -9.8%  hit  17%
+    p40-60     n= 148 ep= 10  median   -10.5%  hit   3%
+    p60-80     n= 114 ep= 16  median    -8.9%  hit  15%
+    p80-100    n= 463 ep=  7  median    -5.1%  hit  41%
+    monotonie : 3/4
+
+
+=== 2. PERCENTILE GLISSANT 730j ===
+
+  apprentissage
+    p00-20     n= 420 ep=  3  median    +0.6%  hit  52%
+    p20-40     n= 205 ep=  8  median    +0.6%  hit  51%
+    p40-60     n= 126 ep=  8  median   +21.0%  hit  78%
+    p60-80     n=  34 ep=  3  median    -2.1%  hit  12%
+    p80-100    n= 311 ep=  3  median    -5.6%  hit  25%
+    monotonie : 2/4
+
+  TEST
+    -          echantillon insuffisant
+    p20-40     n=  21 ep=  1  median   -16.4%  hit   0%
+    p40-60     n= 149 ep=  8  median   -10.3%  hit   1%
+    p60-80     n= 184 ep= 10  median    -9.2%  hit  16%
+    p80-100    n= 529 ep=  4  median    -6.0%  hit  37%
+    monotonie : 3/3
+
+
+=== VERDICT ===
+  Apprentissage et test ne s accordent pas sur la FORME de la
+  relation. Un gradient qui change de forme selon la fenetre est
+  au mieux dependant du regime.
+
+  L ere post-ETF EST le jeu de test. Y ajuster une regle puis citer
+  sa performance post-ETF serait circulaire, et il n existe pas de
+  troisieme periode a garder de cote.
+
+  Plafond honnete sur la preuve de cette hypothese : ~5,0.
+
+  Ce qui survit : la bande haute est la MOINS MAUVAISE dans les deux
+  runs de test. A journaliser et surveiller. Pas a allouer dessus.
