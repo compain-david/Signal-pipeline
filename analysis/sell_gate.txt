@@ -14,8 +14,8 @@ SHADOW ONLY. This gate governs nothing, exactly like the ladder.
   can fire     : NO
   BTC price    : cache analysis/.cache/btc_price_usd.json
                  4990 days, 2013-01-01 -> 2026-08-30
-                 last observation trails the system date 2026-08-31
-                 by 1 day.
+                 last observation trails the system date 2026-09-01
+                 by 2 days.
 
   Last weekly close 2026-08-28: T2 did not fire.
   That row is NOT a week-end close. It is the last
@@ -42,7 +42,7 @@ SHADOW ONLY. This gate governs nothing, exactly like the ladder.
 --------------------------------------------------------------------
   lth_distribution_30d         UNMEASURABLE
       rule : long-term-holder supply falling for 30 days or more
-      why  : no free LTH supply series. `lth-supply` is recorded 404 on BGeometrics (README.md:146); 3 other names are untested guesses. Glassnode/CryptoQuant have it and are paid.
+      why  : no free LTH SUPPLY series. `lth-supply` is 404 on BGeometrics. A PROXY now exists and is fetched daily as `lth_share` - see LTH_PROXY below - but it is not this metric and does not make this input measurable on its own authority.
   sth_rp_weekly_loss           MEASURABLE
       rule : BTC weekly close below short-term-holder realised price
       why  : sth_realized_price is in analysis/series.json; BTC price is derived from CoinMetrics CapMrktCurUSD / SplyCur.
@@ -100,7 +100,7 @@ SHADOW ONLY. This gate governs nothing, exactly like the ladder.
 
 3. T2 BACKTEST (the only computable signal)
 --------------------------------------------------------------------
-  Daily overlap : 2022-08-31 -> 2026-08-28   (STH-RP and BTC price both present)
+  Daily overlap : 2022-09-01 -> 2026-08-28   (STH-RP and BTC price both present)
   Weekly grid   : 2022-09-04 -> 2026-08-28   (209 closes - what the test runs on)
   T2 fired      : 86 weeks (41.1% of all weekly closes)
   ESCALATE      : 142 weeks (67.9% of all weekly closes)
@@ -233,7 +233,7 @@ SHADOW ONLY. This gate governs nothing, exactly like the ladder.
 
 5. LIMITS
 --------------------------------------------------------------------
-  - STH-RP history on disk starts 2022-08-31: 209 weeks inside one cycle.
+  - STH-RP history on disk starts 2022-09-01: 209 weeks inside one cycle.
     Small for a signal meant to fire once or twice per cycle.
   - ASSET MISMATCH. T2 is a BTC rule, T3 is specified on ETH/BTC ETF
     flows, and the book is an ETH/BTC rotation. Section 3 measures the

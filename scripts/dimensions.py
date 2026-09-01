@@ -224,6 +224,11 @@ SIGNAL_REGISTRY = {
     # where Pi Cycle already sits, and Coinglass carries Pi Cycle among
     # its indicators - so this is the honest home for it rather than a
     # new dimension invented to make room.
+    # Proxy pour la distribution LTH - dimension 9 (offre). Suivi et non
+    # Tier A: 2 criteres sur 4 de ADOPTION_RULE. Le seul signal du systeme
+    # dont la direction avait ete ecrite AVANT la mesure, et dont la mesure
+    # est allee dans ce sens.
+    "lth_share":             (9, "track"),
     "peak_indicators":       (4, "track"),
     "sopr":                  (9, "track"),
 }

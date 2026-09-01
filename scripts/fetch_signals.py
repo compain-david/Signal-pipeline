@@ -342,6 +342,75 @@ def fetch_puell_multiple():
     }
 
 
+def fetch_lth_share(history_days=40):
+    """Share of realised cap held by coins aged 6 months or more.
+
+    This is the closest free thing to the sell gate's Tier-1 #1, "LTH
+    distribution over 30 days or more" - and it is NOT that metric. Two gaps,
+    named here rather than buried, because substituting a proxy silently for a
+    specified signal is the worst failure available in this repo:
+
+    1. BOUNDARY. The canonical long-term-holder threshold is 155 days. These
+       bands step 3m -> 6m, so `age_3m_6m` straddles it. Aggregating from 6
+       months up therefore EXCLUDES coins aged 155-180 days that the canonical
+       definition includes. Stricter than LTH, not equal to it.
+    2. WEIGHTING. These are REALISED CAP waves, not supply waves. The quantity
+       is "share of realised cap held by coins of age X", not "share of coins".
+       A falling share still indicates old coins moving, but it is contaminated
+       by the price at which they last moved.
+
+    So this is a PROXY, registered as such. It does not satisfy T1 on its own
+    authority - see sell_gate.py, where accepting it is an explicit decision
+    rather than an inference.
+
+    What was measured (analysis, 1430 days, target = BTC forward return):
+      distribution (30d change < 0) -> edge -2.1 / -6.1 / -6.8 pts at 30/60/90
+    A NEGATIVE edge is the correct direction for a sell signal: when long-term
+    holders distribute, BTC underperforms its own baseline. It is the only
+    signal in this system whose measured direction matched a direction stated
+    BEFORE the measurement.
+
+    It still fails ADOPTION_RULE 2 of 4 - 73% of firing days sit in three
+    episodes, and walk-forward agreement (33%) is below its own shuffle (39%)
+    on three folds. So: tracked, accumulating folds, not voting.
+    """
+    rows = _get(BG_API + "/realized-cap-hodl-waves", retries=1)
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("bgeometrics returned no hodl-wave rows")
+
+    lth_bands = ("age_6m_1y", "age_1y_2y", "age_2y_3y", "age_3y_4y",
+                 "age_4y_5y", "age_5y_7y", "age_7y_10y", "age_10y")
+    series = []
+    for r in rows:
+        try:
+            series.append((r["d"], sum(float(r[b]) for b in lth_bands)))
+        except (KeyError, TypeError, ValueError):
+            continue
+    if len(series) < 31:
+        raise ValueError("insufficient hodl-wave history: %d rows" % len(series))
+    series.sort()
+
+    as_of, current = series[-1]
+    ref_date, ref = series[-31]
+    change = current - ref
+
+    return {
+        "signal": round(current, 5),
+        "change_30d": round(change, 5),
+        "ref_30d": round(ref, 5),
+        "ref_date": ref_date,
+        "as_of": as_of,
+        "distributing": change < 0,
+        "boundary_days": 180,
+        "canonical_lth_days": 155,
+        "source": "bgeometrics realized-cap-hodl-waves (keyless)",
+        "vote": None,   # proxy, tracked - see docstring
+        "note": "PROXY for LTH supply, not the metric itself: 180d boundary "
+                "instead of 155d, and realised-cap weighted rather than "
+                "supply weighted. Tracked, not voting.",
+    }
+
+
 def fetch_peak_indicators():
     """Coinglass bull-market-peak-indicator - TRACKED ONLY, never a vote.
 
@@ -806,6 +875,7 @@ def main():
         "mayer_multiple": safe_fetch(fetch_mayer_multiple),
         "puell_multiple": safe_fetch(fetch_puell_multiple),
         "nupl": safe_fetch(fetch_nupl),
+        "lth_share": safe_fetch(fetch_lth_share),
         "peak_indicators": safe_fetch(fetch_peak_indicators),
         # dimension 3
         "fear_greed": safe_fetch(fetch_fear_greed),

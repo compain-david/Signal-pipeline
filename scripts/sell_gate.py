@@ -184,13 +184,47 @@ LTH_ENDPOINTS_UNVERIFIED = [
 # measurable=False means "no source exists", not "the fetch failed today". It
 # is a property of the world, so it lives in the registry rather than in a
 # run-time status field that a retry could clear.
+# A proxy exists for T1 and is DELIBERATELY not wired to satisfy it.
+#
+# scripts/fetch_signals.fetch_lth_share derives, free and daily, the share of
+# realised cap held by coins aged 6 months or more, from BGeometrics'
+# realized-cap-hodl-waves. Against BTC forward returns over 1430 days, a
+# 30-day decline in that share precedes underperformance of -2.1 / -6.1 / -6.8
+# points at 30 / 60 / 90 days. A negative edge is the CORRECT sign for a sell
+# trigger, and it is the only signal in this system whose measured direction
+# matched one written down before the measurement.
+#
+# It is still not T1, for two reasons that are not solved by wanting them to be:
+#   - the band boundary is 180 days, the canonical LTH threshold is 155
+#   - it is realised-cap weighted, not supply weighted
+# and it fails 2 of the 4 ADOPTION_RULE criteria: 73% of its firing days sit
+# in three episodes, and walk-forward agreement (33%) is below its own shuffled
+# control (39%) across three folds.
+#
+# Accepting a proxy for a specified Tier-1 is a decision with real consequences
+# for a mechanism that sells the book. It belongs to the owner, in writing, not
+# to an inference made here because the number looked encouraging. Until then
+# the gate still reports T1 as UNMEASURABLE and still cannot reach 2 of 3.
+LTH_PROXY = {
+    "signal": "lth_share",
+    "satisfies_t1": False,
+    "decision_required": "Accepter lth_share comme substitut de T1 - "
+                         "frontiere 180j au lieu de 155j, ponderation par "
+                         "capitalisation realisee au lieu de l offre.",
+    "measured_edge_pts": {"30d": -2.1, "60d": -6.1, "90d": -6.8},
+    "adoption_rule_passed": 2,
+    "adoption_rule_total": 4,
+}
+
 TIER_1 = {
     "lth_distribution_30d": {
         "rule": "long-term-holder supply falling for 30 days or more",
         "measurable": False,
-        "why": "no free LTH supply series. `lth-supply` is recorded 404 on "
-               "BGeometrics (README.md:146); 3 other names are untested "
-               "guesses. Glassnode/CryptoQuant have it and are paid.",
+        "why": "no free LTH SUPPLY series. `lth-supply` is 404 on BGeometrics. "
+               "A PROXY now exists and is fetched daily as `lth_share` - see "
+               "LTH_PROXY below - but it is not this metric and does not make "
+               "this input measurable on its own authority.",
+        "proxy": "lth_share",
     },
     "sth_rp_weekly_loss": {
         "rule": "BTC weekly close below short-term-holder realised price",
