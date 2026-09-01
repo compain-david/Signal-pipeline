@@ -89,7 +89,9 @@ SEMANTIC = {
     "sth_realized_price": "rotation",
     "mvrv_z_score": "froth",
     "nvt": "froth",
-    "fear_greed": "froth",
+    # fear_greed removed with its Tier A demotion. Leaving it here would let a
+    # non-voting signal tilt the rotation-versus-froth reading of a tally it
+    # no longer contributes to.
 }
 
 # How many consecutive runs a signal may stay frozen before it is excluded
@@ -132,12 +134,45 @@ DIMENSION_NAMES = {
 
 # signal key -> (dimension number, tier)
 # Tier A total must equal 9; asserted at import so a careless edit fails loudly.
+# ADOPTION RULE - what a signal must survive before it may carry a vote.
+#
+# It exists because seven analyses were run against the same four years of
+# data, one of which produced a perfect 4-of-4 monotone gradient that then
+# dissolved out of sample. Without a stated bar, the twentieth hypothesis that
+# "works" is simply the twentieth draw.
+#
+# A signal may hold Tier A only if ALL of:
+#   1. edge >= 3 points at 90 days against a PERIOD-MATCHED baseline
+#   2. >= 4 distinct episodes, with the largest three under half the bucket
+#   3. walk-forward agreement clearly above its own shuffled control
+#   4. the direction was stated BEFORE the test, not chosen from the result
+#
+# No signal currently in this registry has passed all four. They are retained
+# on mechanism plausibility, which is an assumption, not a result - and this
+# comment exists so that stays visible.
+ADOPTION_RULE = {
+    "min_edge_pts_90d": 3.0,
+    "min_episodes": 4,
+    "max_top3_concentration_pct": 50.0,
+    "requires_walkforward_vs_shuffle": True,
+    "requires_preregistered_direction": True,
+}
+
 SIGNAL_REGISTRY = {
     # -- Tier A, the voting set ------------------------------------------
     "eth_btc_momentum":      (1, "A"),
     "mvrv_z_score":          (2, "A"),
     "nvt":                   (2, "A"),
-    "fear_greed":            (3, "A"),
+    # fear_greed DEMOTED from Tier A on measurement, not on judgement.
+    #
+    # Walk-forward with a shuffled control: 1 agreement out of 9 folds, against
+    # a shuffle scoring 51%. Its direction inverts from one window to the next,
+    # which is worse than no signal - a coin flip at least does not mislead
+    # consistently. It was also the only Tier A rule with enough folds to
+    # measure, so this is the best-evidenced verdict in the whole registry.
+    #
+    # It stays TRACKED: it is genuine context for the weekly brief. It simply
+    # cannot carry a vote. See analysis/walkforward.txt.
     "eth_etf_flows":         (5, "A"),
     "stablecoin_supply_ratio": (6, "A"),
     "alt_funding_rates":     (7, "A"),
@@ -155,6 +190,7 @@ SIGNAL_REGISTRY = {
     "mvrv_ratio":            (2, "track"),
     "mayer_multiple":        (2, "track"),
     "puell_multiple":        (2, "track"),
+    "fear_greed":            (3, "track"),   # demoted, see note above
     "social_volume":         (3, "track"),
     "nupl":                  (2, "track"),
     "sopr":                  (9, "track"),
@@ -162,8 +198,16 @@ SIGNAL_REGISTRY = {
 
 TIER_A_SIGNALS = [k for k, (_, t) in SIGNAL_REGISTRY.items() if t == "A"]
 
-assert len(TIER_A_SIGNALS) == 9, (
-    "Tier A must hold exactly 9 signals, found %d: %s"
+# Was 9 until fear_greed was demoted on walk-forward evidence.
+#
+# NOTE THE SIDE EFFECT, because it is easy to miss: the threshold stayed at 5
+# while the base fell from 9 to 8, so the gate is now STRICTER than it was
+# (5/8 = 62.5% versus 5/9 = 55.6%). That tightening was not chosen, it was
+# inherited from removing a signal. It is left in place deliberately - the
+# backtest showed the looser bar firing on a third of all days - but it is a
+# decision the owner should make rather than absorb.
+assert len(TIER_A_SIGNALS) == 8, (
+    "Tier A must hold exactly 8 signals, found %d: %s"
     % (len(TIER_A_SIGNALS), TIER_A_SIGNALS)
 )
 
@@ -192,7 +236,6 @@ WEIGHTS = {
     "stablecoin_supply_ratio": 0.8,  # correlated 0.79 with MVRV Z
     "eth_btc_momentum": 1.0,
     "nvt": 1.0,
-    "fear_greed": 1.0,
     "eth_etf_flows": 1.0,
     "alt_funding_rates": 1.0,
     "exchange_netflows": 1.0,

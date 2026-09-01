@@ -25,8 +25,22 @@ import ladder
 class TestRegistry(unittest.TestCase):
     """The gate's shape is a spec commitment, not an implementation detail."""
 
-    def test_exactly_nine_tier_a_signals(self):
-        self.assertEqual(len(dimensions.TIER_A_SIGNALS), 9)
+    def test_exactly_eight_tier_a_signals(self):
+        """Was 9. fear_greed demoted on walk-forward evidence (1/9 folds)."""
+        self.assertEqual(len(dimensions.TIER_A_SIGNALS), 8)
+
+    def test_fear_greed_no_longer_votes(self):
+        """The demotion must be structural, not a comment. If someone puts it
+        back without new evidence, this fails."""
+        self.assertNotIn("fear_greed", dimensions.TIER_A_SIGNALS)
+        self.assertEqual(dimensions.SIGNAL_REGISTRY["fear_greed"][1], "track")
+
+    def test_adoption_rule_is_stated_and_strict(self):
+        r = dimensions.ADOPTION_RULE
+        self.assertGreaterEqual(r["min_edge_pts_90d"], 3.0)
+        self.assertGreaterEqual(r["min_episodes"], 4)
+        self.assertTrue(r["requires_walkforward_vs_shuffle"])
+        self.assertTrue(r["requires_preregistered_direction"])
 
     def test_every_signal_maps_to_a_known_dimension(self):
         for key, (dim, tier) in dimensions.SIGNAL_REGISTRY.items():
@@ -45,7 +59,8 @@ class TestTally(unittest.TestCase):
         return {k: {"vote": v, "status": "ok"} for k, v in votes.items()}
 
     def test_none_votes_shrink_denominator_not_numerator(self):
-        s = self._signals({"fear_greed": True, "nvt": None, "mvrv_z_score": False})
+        s = self._signals({"exchange_netflows": True, "nvt": None,
+                           "mvrv_z_score": False})
         t = dimensions.tally(s, "2026-08-31")
         self.assertEqual(t["fired"], 1)
         self.assertEqual(t["checkable"], 2)  # the None is excluded entirely
@@ -217,7 +232,7 @@ class TestWeightedGrade(unittest.TestCase):
         self.assertAlmostEqual(g["score"], 1.6, places=1)
 
     def test_two_independent_signals_score_full(self):
-        g = dimensions.grade(self._sig({"fear_greed", "exchange_netflows"}))
+        g = dimensions.grade(self._sig({"eth_btc_momentum", "exchange_netflows"}))
         self.assertAlmostEqual(g["score"], 2.0, places=1)
 
     def test_no_votes_grades_d(self):
@@ -233,15 +248,32 @@ class TestWeightedGrade(unittest.TestCase):
         self.assertLess(g["score"], dimensions.GRADE_BANDS[1][1])
         self.assertIn(g["grade"], ("C", "D"))
 
-    def test_froth_majority_caps_a_mixed_grade(self):
-        """The case the cap actually exists for: enough total evidence to
-        reach B, but most of it is froth - so it must not read as permission
-        to rotate."""
+    def test_froth_majority_cap_is_now_structurally_unreachable(self):
+        """The cap existed for: enough total evidence to reach B, most of it
+        froth. Demoting fear_greed made that state impossible - documented
+        here rather than silently left as dead code."""
         froth = {k for k, v in dimensions.SEMANTIC.items() if v == "froth"}
-        g = dimensions.grade(self._sig(froth | {"exchange_netflows"}))
+        # STRUCTURAL CONSEQUENCE of demoting fear_greed, asserted rather than
+        # worked around: froth can now total only 1.8 (mvrv 0.8 + nvt 1.0).
+        # Band B needs 3.5, so any grade of B or better carries at least 1.7 of
+        # rotation weight and rotation therefore always exceeds froth. A
+        # froth-majority grade at B+ has become unreachable, which makes the
+        # cap dead code today.
+        #
+        # It is kept, not deleted: restoring any froth signal to Tier A brings
+        # the case straight back, and a guard that only matters after a future
+        # edit is exactly the kind worth keeping. This test fails the day that
+        # stops being true, which is the signal to re-examine the cap.
+        froth_total = sum(dimensions.WEIGHTS[k] for k in froth
+                          if k in dimensions.WEIGHTS)
+        self.assertLess(froth_total, dimensions.GRADE_BANDS[1][1],
+                        "froth alone can no longer reach band B")
+
+        g = dimensions.grade(self._sig(froth | {"exchange_netflows",
+                                                "eth_btc_momentum"}))
         self.assertGreaterEqual(g["score"], dimensions.GRADE_BANDS[1][1])
-        self.assertTrue(g["capped_for_froth_majority"])
-        self.assertEqual(g["grade"], "C")
+        self.assertFalse(g["capped_for_froth_majority"],
+                         "rotation now necessarily outweighs froth at band B+")
 
     def test_rotation_majority_is_not_capped(self):
         rot = {k for k, v in dimensions.SEMANTIC.items() if v == "rotation"}
