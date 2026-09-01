@@ -1,6 +1,6 @@
 {
   "date": "2026-09-01",
-  "fetched_at": "2026-09-01T18:10:12.354757+00:00",
+  "fetched_at": "2026-09-01T20:01:08.887250+00:00",
   "schema_version": 4,
   "thresholds": {
     "fear_greed_above": 60,
@@ -17,9 +17,9 @@
   },
   "signals": {
     "eth_btc_momentum": {
-      "signal": 5.71,
-      "eth_btc_start": 0.029543,
-      "eth_btc_now": 0.031229,
+      "signal": 5.96,
+      "eth_btc_start": 0.029614,
+      "eth_btc_now": 0.031378,
       "window_days": 14,
       "source": "coingecko (keyless)",
       "vote": false,
@@ -31,12 +31,12 @@
       "tier": "A"
     },
     "btc_dominance": {
-      "signal": 59.04,
-      "btc_dominance_pct": 59.04,
-      "eth_dominance_pct": 11.11,
-      "btc_price_usd": 77208,
-      "eth_price_usd": 2414.62,
-      "eth_btc_ratio": 0.03127,
+      "signal": 59.07,
+      "btc_dominance_pct": 59.07,
+      "eth_dominance_pct": 11.1,
+      "btc_price_usd": 77251,
+      "eth_price_usd": 2416.06,
+      "eth_btc_ratio": 0.03128,
       "source": "coingecko (keyless)",
       "vote": false,
       "fired_rotation_gate": false,
@@ -48,7 +48,7 @@
     },
     "alt_dominance": {
       "status": "building",
-      "signal": 29.85,
+      "signal": 29.83,
       "vote": null,
       "days_available": 5,
       "days_required": 30,
@@ -150,6 +150,25 @@
       "dimension_name": "valuation",
       "tier": "track"
     },
+    "lth_share": {
+      "signal": 0.808,
+      "change_30d": -0.001,
+      "ref_30d": 0.809,
+      "ref_date": "2026-08-01",
+      "as_of": "2026-08-31",
+      "distributing": true,
+      "boundary_days": 180,
+      "canonical_lth_days": 155,
+      "source": "bgeometrics realized-cap-hodl-waves (keyless)",
+      "vote": null,
+      "note": "PROXY for LTH supply, not the metric itself: 180d boundary instead of 155d, and realised-cap weighted rather than supply weighted. Tracked, not voting.",
+      "status": "ok",
+      "source_age_days": 1,
+      "frozen_streak": 0,
+      "dimension": 9,
+      "dimension_name": "supply_side",
+      "tier": "track"
+    },
     "peak_indicators": {
       "status": "no_key",
       "signal": null,
@@ -209,12 +228,12 @@
       "tier": "A"
     },
     "alt_funding_rates": {
-      "signal": 3.94,
-      "alt_avg_funding_apr_pct": 3.94,
-      "btc_funding_apr_pct": 6.5,
-      "alt_minus_btc_apr_pct": -2.56,
-      "previous_apr_pct": 4.13,
-      "previous_spread_pct": -2.01,
+      "signal": 5.02,
+      "alt_avg_funding_apr_pct": 5.02,
+      "btc_funding_apr_pct": 7.82,
+      "alt_minus_btc_apr_pct": -2.8,
+      "previous_apr_pct": 3.94,
+      "previous_spread_pct": -2.56,
       "rising": false,
       "per_symbol": {
         "ETHUSDT": {
@@ -223,14 +242,14 @@
           "apr_pct": 10.95
         },
         "SOLUSDT": {
-          "rate_pct": -0.01187,
+          "rate_pct": -0.005844,
           "settlements_per_day": 3,
-          "apr_pct": -13.0
+          "apr_pct": -6.4
         },
         "XRPUSDT": {
-          "rate_pct": 0.00628,
+          "rate_pct": 0.004195,
           "settlements_per_day": 3,
-          "apr_pct": 6.88
+          "apr_pct": 4.59
         },
         "HYPEUSDT": {
           "rate_pct": 0.01,
@@ -238,9 +257,9 @@
           "apr_pct": 10.95
         },
         "BTCUSDT": {
-          "rate_pct": 0.005938,
+          "rate_pct": 0.007146,
           "settlements_per_day": 3,
-          "apr_pct": 6.5
+          "apr_pct": 7.82
         }
       },
       "reference_leg": "BTCUSDT",
@@ -295,34 +314,35 @@
       "tier": "track"
     },
     "sth_realized_price": {
-      "signal": 69979.57,
+      "signal": null,
       "sth_realized_price_usd": 69979.57,
-      "btc_price_usd": 77208,
-      "premium_pct": 10.33,
+      "btc_price_usd": 77251,
+      "premium_pct": 10.39,
       "as_of": "2026-08-28",
       "source": "bgeometrics (keyless)",
       "vote": null,
-      "note": "source has not advanced in 4 days (max 3) - demoted, not voting",
-      "status": "stale",
+      "note": "frozen for 4 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
+      "status": "frozen_excluded",
       "source_age_days": 4,
       "stale": true,
-      "frozen_streak": 3,
+      "frozen_streak": 4,
+      "excluded_from_composite": true,
       "dimension": 10,
       "dimension_name": "inflection",
       "tier": "A"
     }
   },
   "health": {
-    "ok": 13,
+    "ok": 14,
     "failed": 0,
-    "stale": 1,
+    "stale": 0,
     "structurally_unavailable": 5,
-    "frozen": 0,
+    "frozen": 1,
     "failed_signals": [],
-    "stale_signals": [
+    "stale_signals": [],
+    "frozen_excluded": [
       "sth_realized_price"
     ],
-    "frozen_excluded": [],
     "degraded": true,
     "note": "degraded=true means the run completed but lost live data - check failed_signals before trusting the tally"
   },
@@ -389,8 +409,8 @@
     "status": "SHADOW - unsigned strategy update, governs nothing",
     "state": "BTC",
     "previous_state": "BTC",
-    "days_held": 7,
-    "reason": "held - 7 of 14 minimum days in state",
+    "days_held": 8,
+    "reason": "held - 8 of 14 minimum days in state",
     "pending_decisions": [
       "Sign the versioned strategy update: 25% ETH cap, four-state ladder",
       "Confirm the six thresholds: 0.55/0.45 ETH, 0.70/0.60 ALT, 2 weeks, 70% floor",
