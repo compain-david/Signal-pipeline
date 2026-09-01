@@ -1,6 +1,6 @@
 {
   "date": "2026-09-01",
-  "fetched_at": "2026-09-01T15:03:52.150910+00:00",
+  "fetched_at": "2026-09-01T17:49:12.160873+00:00",
   "schema_version": 4,
   "thresholds": {
     "fear_greed_above": 60,
@@ -17,9 +17,9 @@
   },
   "signals": {
     "eth_btc_momentum": {
-      "signal": 5.82,
-      "eth_btc_start": 0.029561,
-      "eth_btc_now": 0.031281,
+      "signal": 5.95,
+      "eth_btc_start": 0.029543,
+      "eth_btc_now": 0.0313,
       "window_days": 14,
       "source": "coingecko (keyless)",
       "vote": false,
@@ -31,12 +31,12 @@
       "tier": "A"
     },
     "btc_dominance": {
-      "signal": 59.14,
-      "btc_dominance_pct": 59.14,
+      "signal": 59.05,
+      "btc_dominance_pct": 59.05,
       "eth_dominance_pct": 11.14,
-      "btc_price_usd": 77964,
-      "eth_price_usd": 2443.66,
-      "eth_btc_ratio": 0.03134,
+      "btc_price_usd": 77377,
+      "eth_price_usd": 2428.06,
+      "eth_btc_ratio": 0.03138,
       "source": "coingecko (keyless)",
       "vote": false,
       "fired_rotation_gate": false,
@@ -48,9 +48,9 @@
     },
     "alt_dominance": {
       "status": "building",
-      "signal": 29.72,
+      "signal": 29.81,
       "vote": null,
-      "days_available": 4,
+      "days_available": 5,
       "days_required": 30,
       "source": "derived (btc + eth dominance, keyless)",
       "note": "accumulating the 30-day window from this repo's own history; votes once 30 days exist",
@@ -150,6 +150,16 @@
       "dimension_name": "valuation",
       "tier": "track"
     },
+    "peak_indicators": {
+      "status": "no_key",
+      "signal": null,
+      "vote": null,
+      "note": "Coinglass HOBBYIST $29/mo. Tracked only - its thresholds have not passed ADOPTION_RULE.",
+      "frozen_streak": 0,
+      "dimension": 4,
+      "dimension_name": "technical_pattern",
+      "tier": "track"
+    },
     "fear_greed": {
       "signal": 69,
       "classification": "Greed",
@@ -199,38 +209,38 @@
       "tier": "A"
     },
     "alt_funding_rates": {
-      "signal": 0.56,
-      "alt_avg_funding_apr_pct": 0.56,
-      "btc_funding_apr_pct": 6.46,
-      "alt_minus_btc_apr_pct": -5.9,
-      "previous_apr_pct": 4.12,
-      "previous_spread_pct": -2.89,
-      "rising": false,
+      "signal": 4.13,
+      "alt_avg_funding_apr_pct": 4.13,
+      "btc_funding_apr_pct": 6.14,
+      "alt_minus_btc_apr_pct": -2.01,
+      "previous_apr_pct": 0.56,
+      "previous_spread_pct": -5.9,
+      "rising": true,
       "per_symbol": {
         "ETHUSDT": {
-          "rate_pct": 0.006751,
-          "settlements_per_day": 3,
-          "apr_pct": 7.39
-        },
-        "SOLUSDT": {
-          "rate_pct": -0.012158,
-          "settlements_per_day": 3,
-          "apr_pct": -13.31
-        },
-        "XRPUSDT": {
           "rate_pct": 0.01,
           "settlements_per_day": 3,
           "apr_pct": 10.95
         },
-        "HYPEUSDT": {
-          "rate_pct": -0.002547,
+        "SOLUSDT": {
+          "rate_pct": -0.01191,
           "settlements_per_day": 3,
-          "apr_pct": -2.79
+          "apr_pct": -13.04
+        },
+        "XRPUSDT": {
+          "rate_pct": 0.006994,
+          "settlements_per_day": 3,
+          "apr_pct": 7.66
+        },
+        "HYPEUSDT": {
+          "rate_pct": 0.01,
+          "settlements_per_day": 3,
+          "apr_pct": 10.95
         },
         "BTCUSDT": {
-          "rate_pct": 0.005898,
+          "rate_pct": 0.005604,
           "settlements_per_day": 3,
-          "apr_pct": 6.46
+          "apr_pct": 6.14
         }
       },
       "reference_leg": "BTCUSDT",
@@ -287,8 +297,8 @@
     "sth_realized_price": {
       "signal": 69979.57,
       "sth_realized_price_usd": 69979.57,
-      "btc_price_usd": 77964,
-      "premium_pct": 11.41,
+      "btc_price_usd": 77377,
+      "premium_pct": 10.57,
       "as_of": "2026-08-28",
       "source": "bgeometrics (keyless)",
       "vote": null,
@@ -296,7 +306,7 @@
       "status": "stale",
       "source_age_days": 4,
       "stale": true,
-      "frozen_streak": 1,
+      "frozen_streak": 2,
       "dimension": 10,
       "dimension_name": "inflection",
       "tier": "A"
@@ -306,7 +316,7 @@
     "ok": 13,
     "failed": 0,
     "stale": 1,
-    "structurally_unavailable": 4,
+    "structurally_unavailable": 5,
     "frozen": 0,
     "failed_signals": [],
     "stale_signals": [
@@ -326,8 +336,8 @@
     "note": "only counts signals this run could verify - missing sources reduce the denominator, not the numerator"
   },
   "gate_new": {
-    "authoritative": true,
-    "adopted_from": "2026-08-30",
+    "authoritative": false,
+    "adopted_from": "2026-09-30",
     "fired": 1,
     "checkable": 6,
     "threshold": 5,
@@ -355,7 +365,7 @@
       "pct_required": 83.3,
       "note": "the old 4/7 gate was ~57% of a CORRELATED base; this is the same ratio on an independent base, which is stricter - see TIER_A_THRESHOLD for the open decision"
     },
-    "note": "AUTHORITATIVE - this gate governs"
+    "note": "SHADOW MODE - logged only, legacy gate governs until 2026-09-30"
   },
   "gate_grade": {
     "grade": "D",
@@ -379,8 +389,8 @@
     "status": "SHADOW - unsigned strategy update, governs nothing",
     "state": "BTC",
     "previous_state": "BTC",
-    "days_held": 5,
-    "reason": "held - 5 of 14 minimum days in state",
+    "days_held": 6,
+    "reason": "held - 6 of 14 minimum days in state",
     "pending_decisions": [
       "Sign the versioned strategy update: 25% ETH cap, four-state ladder",
       "Confirm the six thresholds: 0.55/0.45 ETH, 0.70/0.60 ALT, 2 weeks, 70% floor",
