@@ -17,9 +17,15 @@ running in 2021, what would it have said?
 The answer, stated before the tables so nobody has to hunt for it
 -----------------------------------------------------------------
 It would have said nothing, on every day of both windows, because it could not
-read itself. Only 2 of the 9 Tier A signals can be reconstructed for 2021 from
-anything on disk. The gate needs 5 of 9 to fire (dimensions.TIER_A_THRESHOLD),
-so with at most 2 scoreable signals the 2021 tally is not merely low - it is
+read itself. Only two Tier A signals can be reconstructed for 2021 from
+anything on disk.
+
+Counts are read from dimensions at runtime and never written as literals in
+this file. fear_greed was demoted from Tier A on walk-forward evidence and
+every hardcoded "9" here became wrong on the same day, which is why the size
+of the Tier A set is now always computed.
+
+With at most 2 scoreable signals the 2021 tally is not merely low - it is
 arithmetically incapable of reaching the threshold. The ladder is worse: 1 of
 its 8 rotation signals is reconstructable, giving 1/7 coverage in
 dimension-capped units against a 70% floor. It would have been frozen for all
@@ -406,8 +412,20 @@ def build_signals(date, prices, series, fng, btc=None):
     coverage arithmetic is the whole point: a study that computed coverage its
     own way would be measuring itself rather than the pipeline.
     """
+    # Seed every key this module can PRINT, not only those that can VOTE.
+    #
+    # These were the same set until fear_greed was demoted from Tier A on
+    # walk-forward evidence. COLUMNS still prints it - correctly, since a
+    # signal that stopped voting is still context worth seeing on a dated
+    # table - but build_row seeded only Tier A plus the rotation axis, so
+    # render() raised KeyError on a column it was asked to draw.
+    #
+    # Deriving the seed set from COLUMNS as well means a future promotion or
+    # demotion changes what VOTES without breaking what is DISPLAYED.
     signals = {}
-    for key in set(dimensions.TIER_A_SIGNALS) | set(ladder.ROTATION_SIGNALS):
+    for key in (set(dimensions.TIER_A_SIGNALS)
+                | set(ladder.ROTATION_SIGNALS)
+                | {k for k, _ in COLUMNS}):
         signals[key] = {"status": "no_data", "signal": None, "vote": None}
 
     mom = momentum_14d(prices, date)
@@ -834,13 +852,27 @@ def render(prices, series, fng, notes, btc=None):
         "every reader sees the same bytes.")
     add("     The Fear & Greed archive and the daily BTC close are read from "
         "analysis/.cache/, which is not -")
-    add("     .gitignore excludes that directory. A fresh checkout has neither "
-        "file, and this same study then measures")
-    add("     %d of %d readable Tier A signals instead of the %d of %d printed "
-        "in section 2 below - a worse"
-        % (len(present_no_cache), n_total, len(reconstructable), n_total))
-    add("     number for a reason that has nothing to do with 2021. Both "
-        "figures are measured, not quoted.")
+    add("     .gitignore excludes that directory.")
+    # Both figures are measured, so they can legitimately coincide - and when
+    # they do, the "instead of" phrasing degenerates into "1 of 8 instead of
+    # the 1 of 8", which reads as an unproofread template rather than a
+    # measurement. Branch on the comparison instead of asserting a gap that
+    # may not exist. It stopped existing the day fear_greed left Tier A.
+    if len(present_no_cache) == len(reconstructable):
+        add("     A fresh checkout has neither file - but on THIS checkout "
+            "that costs nothing:")
+        add("     %d of %d readable Tier A signals either way, so the figure "
+            "in section 2 already IS"
+            % (len(reconstructable), n_total))
+        add("     the fresh-checkout figure. Both are measured, not quoted.")
+    else:
+        add("     A fresh checkout has neither file, and this same study then "
+            "measures")
+        add("     %d of %d readable Tier A signals instead of the %d of %d "
+            "printed in section 2 below - a worse"
+            % (len(present_no_cache), n_total, len(reconstructable), n_total))
+        add("     number for a reason that has nothing to do with 2021. Both "
+            "figures are measured, not quoted.")
     add("     CI repopulates F&G by curl from alternative.me (keyless, and NOT "
         "the rate-limited BGeometrics")
     add("     host) before running, and skips this report entirely if that "
@@ -1115,8 +1147,9 @@ def render(prices, series, fng, notes, btc=None):
         % (scan["min_coverage"] * 100, scan["max_coverage"] * 100))
     add("   days at or above the %.0f%% floor         %d"
         % (scan["floor"] * 100, scan["days_above_floor"]))
-    add("   days the gate could reach %d of 9        %d"
-        % (scan["gate_threshold"], scan["days_gate_could_reach_threshold"]))
+    add("   days the gate could reach %d of %d       %d"
+        % (scan["gate_threshold"], len(dimensions.TIER_A_SIGNALS),
+           scan["days_gate_could_reach_threshold"]))
     add("")
     if scan["days_above_floor"] == 0:
         add("   The floor holds on ZERO days. The ladder would have been "
@@ -1147,8 +1180,9 @@ def render(prices, series, fng, notes, btc=None):
         "altseasons. %d of its %d Tier A signals"
         % (n_total - len(reconstructable), n_total))
     add("   have no readable value on any date in either window. Coverage is "
-        "%.1f%%, against a gate that needs 5 of 9"
-        % (len(reconstructable) / n_total * 100))
+        "%.1f%%, against a gate that needs %d of %d"
+        % (len(reconstructable) / n_total * 100,
+           dimensions.TIER_A_THRESHOLD, n_total))
     add("   to fire and a ladder that needs 70% to act at all. Both fail on "
         "the inputs, not on the market.")
     add("")
@@ -1192,8 +1226,8 @@ def render(prices, series, fng, notes, btc=None):
         "against 2021: US spot ETH ETFs did")
     add("       not exist until 2024-07-23. No backfill fixes that. Any future "
         "claim that this framework 'would")
-    add("       have caught 2021' is capped at 8 of 9 signals before the work "
-        "even starts.")
+    add("       have caught 2021' is capped at %d of %d signals before the work "
+        "even starts." % (n_total - 1, n_total))
     add("")
     add("   What is NOT claimed here: that the thresholds are wrong. This "
         "study cannot tell, and does not guess.")

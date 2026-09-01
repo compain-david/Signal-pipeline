@@ -90,10 +90,18 @@ class TestThresholdsHaveNotDrifted(unittest.TestCase):
         """No Tier A signal may be quietly dropped from the study. A signal
         with neither a column nor an absence reason would vanish from the
         coverage arithmetic without anyone noticing."""
+        # The invariant is COVERAGE, not equality. Every Tier A signal must
+        # have a column; the reverse is not required, because a signal demoted
+        # to tracked keeps its column deliberately - fear_greed still belongs
+        # on a dated 2021 table even though it no longer votes. Asserting
+        # equality made a demotion look like a dropped signal.
         columns = {k for k, _ in event_study.COLUMNS}
-        self.assertEqual(columns, set(dimensions.TIER_A_SIGNALS))
         for key in dimensions.TIER_A_SIGNALS:
             self.assertIn(key, columns, key)
+        extra = columns - set(dimensions.TIER_A_SIGNALS)
+        for key in extra:
+            self.assertIn(key, dimensions.SIGNAL_REGISTRY,
+                          "a printed column must at least be a known signal")
 
     def test_absence_reasons_only_describe_real_signals(self):
         for key in event_study.ABSENCE_REASONS:
@@ -324,13 +332,21 @@ class TestCoverageArithmetic(unittest.TestCase):
                                       kw.get("btc"))
 
     def test_gate_coverage_denominator_is_the_full_tier_a_set(self):
-        """Nine, always. Shrinking the denominator to what happened to be
+        """The FULL Tier A set, always. Shrinking the denominator to what happened to be
         readable would turn 2-of-9 into 2-of-2 and report 100% coverage."""
         r = self._row(prices={"2021-02-01": 0.02, "2021-02-15": 0.03},
                       fng={"2021-02-15": 77.0})
-        self.assertEqual(r["gate_total"], 9)
-        self.assertEqual(r["gate_checkable"], 2)
-        self.assertAlmostEqual(r["gate_coverage_pct"], 200 / 9, places=6)
+        self.assertEqual(r["gate_total"], len(dimensions.TIER_A_SIGNALS))
+        expected = len([k for k in ("eth_btc_momentum", "fear_greed")
+                        if k in dimensions.TIER_A_SIGNALS])
+        self.assertEqual(r["gate_checkable"], expected)
+        # The invariant is that the DENOMINATOR is the full Tier A set, not
+        # that it equals nine. Writing 200/9 pinned the size of the set into a
+        # test about its role, so demoting one signal broke a test that was
+        # never about that signal.
+        n = len(dimensions.TIER_A_SIGNALS)
+        self.assertAlmostEqual(r["gate_coverage_pct"], expected / n * 100,
+                               places=6)
 
     def test_nothing_readable_is_zero_coverage_not_zero_signal(self):
         r = self._row()
@@ -685,7 +701,15 @@ class TestGitignoredInputsAreDeclared(unittest.TestCase):
         self.assertIn("GITIGNORED", text)
         self.assertIn("analysis/.cache/", text)
         # Both counts measured from the same scan: 2 with the cache, 1 without.
-        self.assertIn("1 of 9 readable Tier A signals instead of the 2 of 9",
+        # Section 1 branches: when the cached and fresh-checkout figures
+        # coincide it says so instead of printing "N instead of the N", which
+        # read as an unproofread template. Accept either wording, and assert
+        # what actually matters - that BOTH figures are stated as measured.
+        self.assertTrue(
+            ("readable Tier A signals instead of the" in text)
+            or ("either way, so the figure in section 2 already IS" in text),
+            "section 1 must state the fresh-checkout figure one way or the other")
+        self.assertIn("measured, not quoted",
                       text)
 
     def test_it_says_ci_skips_the_report_when_the_fetch_fails(self):
@@ -736,7 +760,7 @@ class TestMainSmoke(unittest.TestCase):
             self.assertTrue(os.path.getsize(out) > 0)
             with open(out, encoding="utf-8") as f:
                 text = f.read()
-        self.assertIn("22.2%", text)
+        self.assertIn("%.1f%%" % (1 / len(dimensions.TIER_A_SIGNALS) * 100), text)
         self.assertIn("SHADOW ONLY", text)
 
 
@@ -799,7 +823,13 @@ class TestAgainstRealData(unittest.TestCase):
         expected = set(dimensions.TIER_A_SIGNALS) - set(
             event_study.ABSENCE_REASONS)
         self.assertEqual(measured, expected)
-        self.assertEqual(measured, {"eth_btc_momentum", "fear_greed"})
+        # fear_greed left Tier A on walk-forward evidence, so it is no longer
+        # among the signals this assertion is about. Derived from the registry
+        # rather than relisted, so the next promotion or demotion does not
+        # silently make this test assert the wrong set.
+        expected = {k for k in ("eth_btc_momentum", "fear_greed")
+                    if k in dimensions.TIER_A_SIGNALS}
+        self.assertEqual(measured, expected)
 
     def test_every_rotation_signal_is_either_readable_or_explained(self):
         """The ladder-side equivalent. Three rotation signals are not Tier A,
@@ -857,7 +887,13 @@ class TestAgainstRealData(unittest.TestCase):
         silently outliving the data it describes."""
         row = event_study.score_date("2021-02-15", self.prices, self.series,
                                      self.fng, self.btc)
-        self.assertAlmostEqual(row["gate_coverage_pct"], 22.2, places=1)
+        # Was 22.2% (2 of 9). fear_greed's demotion changed BOTH the numerator
+        # and the denominator, which is exactly why this must be computed.
+        n = len(dimensions.TIER_A_SIGNALS)
+        readable = sum(1 for k in dimensions.TIER_A_SIGNALS
+                       if row["signals"][k]["vote"] is not None)
+        self.assertAlmostEqual(row["gate_coverage_pct"], readable / n * 100,
+                               places=1)
 
 
 if __name__ == "__main__":

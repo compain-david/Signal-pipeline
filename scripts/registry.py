@@ -172,6 +172,7 @@ Run: python scripts/registry.py
 """
 
 import datetime
+import hashlib
 import json
 import os
 import random
@@ -183,6 +184,10 @@ ANALYSIS = os.path.join(HERE, "..", "analysis")
 sys.path.insert(0, HERE)
 
 import band_study as bs
+# For TOP_N only, and only so the basket size cannot be restated here and
+# drift from the generator that decides it. Importing is safe: build_rotations
+# reaches the network in main(), never at import.
+import build_rotations as br
 import forward_study as fs
 import walkforward as wf
 # Imported for two shared constants and one shared null. The alt-basket caveat
@@ -248,6 +253,29 @@ HORIZON = 90
 NULL_MODES = ("melange", "decalage")
 
 VERDICTS = ("ADOPTE", "CANDIDAT", "REJETE", "SOUS_RESOLU", "NON_TESTABLE")
+
+# Targets whose UNIVERSE is wrong, not whose result is weak. HEAD's
+# build_rotations.py rebuilt the alt index and its commit withdrew the alt
+# results outright - "retires, pas seulement nuances" - because CoinMetrics
+# community carries none of this cycle's major alts, so the index measures a
+# 2017-2021 basket whatever the statistics say about it.
+#
+# This is a different kind of refusal from every other one in this module, and
+# it is checked FIRST for that reason. Every other criterion asks how strong
+# the evidence is; this one asks whether the measurement is about the question
+# at all. A signal can beat its null, clear the corrected bar and still be
+# describing the wrong market - and a registry that let a good p-value promote
+# it would be counting draws impeccably while pointing the wrong way.
+#
+# Kept as measured entries rather than deleted, because this file never removes
+# anything: a withdrawn hypothesis that disappears leaves no trace that it was
+# ever asked, which is the exact failure the registry exists to prevent.
+WITHDRAWN_TARGETS = {
+    "alt_eth": "univers invalide - l indice alt ne couvre aucun major de ce "
+               "cycle (build_rotations.py, HEAD)",
+    "alt_btc": "univers invalide - l indice alt ne couvre aucun major de ce "
+               "cycle (build_rotations.py, HEAD)",
+}
 
 
 # --- registry file ---------------------------------------------------------
@@ -366,9 +394,47 @@ def unseen_days(registered_on, data_end):
             - datetime.date.fromisoformat(registered_on)).days
 
 
-def comparison_key(hyp_id, target, window, train_days, test_days, data_end):
+def fingerprint(series):
+    """A short, stable digest of the VALUES a comparison was measured on.
+
+    This exists because of something that happened to this module during the
+    run that produced it. analysis/dominance.json was regenerated underneath it
+    - a different basket, a different universe size, different numbers - while
+    every field the registry keyed on stayed identical: same hypothesis id,
+    same target name, same window widths, same 2026-08-31 cutoff. The old
+    results and the new ones therefore collided on one comparison key, and the
+    file would have shown a single comparison where two different experiments
+    had been run.
+
+    That is the module's own failure mode, one level up: it counts draws, and
+    it could not see that the deck had been changed. A date range does not
+    identify data. The digest does, so re-measuring a hypothesis on regenerated
+    data now counts as the second look it is - and the corrected bar tightens
+    accordingly, which is the whole point of keeping a counter.
+
+    Twelve hex characters, not a full digest: it must be readable in a report
+    and compared by eye. That is a collision risk taken knowingly, and it buys
+    nothing against a deliberate collision - this detects accidents, not
+    tampering.
+    """
+    h = hashlib.sha256()
+    for d in sorted(series):
+        h.update(("%s=%.10g;" % (d, series[d])).encode("utf-8"))
+    return h.hexdigest()[:12]
+
+
+def comparison_key(hyp_id, target, window, train_days, test_days, data_end,
+                   signal_fp="", target_fp=""):
+    """Identity of one comparison. The digests are part of it, not metadata.
+
+    Defaulting them to empty keeps every key already in analysis/registry.json
+    parseable and un-rewritten; those entries simply carry no digest, which is
+    exactly true of them - they were written by a version that did not know
+    what it had measured.
+    """
     return "|".join(str(x) for x in
-                    (hyp_id, target, window, train_days, test_days, data_end))
+                    (hyp_id, target, window, train_days, test_days, data_end,
+                     signal_fp, target_fp))
 
 
 def record_result(reg, hyp_id, result, evaluated_on):
@@ -463,6 +529,17 @@ def adoption_verdict(entry, measurement, bar):
     out = dict(measurement)
     out.update({"verdict": None, "reasons": reasons, "bar": bar,
                 "scored": False})
+
+    # Checked before the fold count, and before anything statistical. An
+    # withdrawn universe is not a weak result to be scored and then rejected:
+    # scoring it would enter it in the family counter as if it had been a
+    # comparison about the question, and print a p-value the reader could
+    # weigh. There is nothing to weigh.
+    if entry["target"] in WITHDRAWN_TARGETS:
+        reasons.append("%s - resultat retire, aucune statistique ne le rouvre"
+                       % WITHDRAWN_TARGETS[entry["target"]])
+        out["verdict"] = "NON_TESTABLE"
+        return out
 
     folds = measurement.get("folds") or 0
     if folds < MIN_FOLDS:
@@ -723,6 +800,10 @@ def summarise_null(nd, real_folds, real_rate):
 def measure(entry, series, fwd, data_end, shuffles=SHUFFLES, seed=SEED):
     """Walk-forward plus its nulls. Offline, deterministic, self-describing."""
     restricted = restrict(series, fwd)
+    # Digested BEFORE the walk, from the same dicts the walk reads, so the
+    # recorded identity cannot describe different numbers from the measured
+    # ones.
+    sig_fp, tgt_fp = fingerprint(restricted), fingerprint(fwd)
     pairs, attempts = walk_folds(restricted, fwd)
     good = usable_folds(pairs)
     folds = len(good)
@@ -733,7 +814,10 @@ def measure(entry, series, fwd, data_end, shuffles=SHUFFLES, seed=SEED):
          "data_end": data_end,
          "prereg": preregistration_status(entry["registered_on"], data_end),
          "comparison_key": comparison_key(entry["id"], entry["target"], WINDOW,
-                                          TRAIN_DAYS, TEST_DAYS, data_end),
+                                          TRAIN_DAYS, TEST_DAYS, data_end,
+                                          sig_fp, tgt_fp),
+         "signal_fingerprint": sig_fp,
+         "target_fingerprint": tgt_fp,
          "window": WINDOW, "train_days": TRAIN_DAYS, "test_days": TEST_DAYS,
          "horizon": HORIZON,
          "signal_days": len(series),
@@ -760,10 +844,18 @@ def measure(entry, series, fwd, data_end, shuffles=SHUFFLES, seed=SEED):
          "floor": resolution_floor(folds, 0),
          "nulls": {}}
 
-    if folds < MIN_FOLDS:
+    if folds < MIN_FOLDS or entry["target"] in WITHDRAWN_TARGETS:
         # Shuffling a test that cannot conclude burns minutes to produce a
         # number nobody is allowed to use. Skipped, and the skip stays visible
         # in the record as shuffles = 0 rather than as a missing field.
+        #
+        # A withdrawn target is the same case for a different reason, and it
+        # gets the same treatment for consistency: the verdict refuses it
+        # before reading any statistic, so drawing 500 nulls for it would buy
+        # a p-value the rule is forbidden to look at. The walk itself is still
+        # run and recorded - what was asked, and what came back, stays in the
+        # file - only the nulls are skipped. In this run that is 1000 of 3000
+        # draws and rather more than half the wall time.
         return m
 
     real = agree / folds * 100
@@ -844,6 +936,39 @@ HYPOTHESES = [
 ]
 
 
+# The gate's own name for each signal this registry judges. Only the four that
+# exist on both sides are here; dominance and the ETH/BTC level are rotation
+# inputs, not gate signals, and inventing keys for them would fabricate a
+# correspondence.
+GATE_KEYS = {"Fear & Greed": "fear_greed",
+             "mvrv_z_score": "mvrv_z_score",
+             "nvt": "nvt",
+             "stablecoin_supply_ratio": "stablecoin_supply_ratio"}
+
+
+def downstream_tiers():
+    """What the live gate does with the signals this registry judged.
+
+    A registry that issues verdicts nobody reads is a diary. This reads
+    dimensions.SIGNAL_REGISTRY at runtime and prints the tier each judged
+    signal actually sits in, so the report shows whether its own conclusions
+    were acted on - or, just as usefully, that they were not.
+
+    Imported lazily: dimensions is the gate, and a measurement module that
+    fails to load because the thing it measures moved would be the wrong
+    dependency direction.
+    """
+    try:
+        import dimensions
+    except Exception:
+        return None
+    out = {}
+    for label, key in sorted(GATE_KEYS.items()):
+        spec = dimensions.SIGNAL_REGISTRY.get(key)
+        out[label] = spec[1] if spec else None
+    return out
+
+
 def by_hyp_id(hyp_id):
     for h in HYPOTHESES:
         if h[0] == hyp_id:
@@ -884,14 +1009,59 @@ def load_fear_greed_offline(path=FNG_CACHE):
 
 
 def basket_span(dom):
-    """Size of the dominance basket, measured, day by day.
+    """Size of the UNIVERSE behind the dominance figures, day by day.
 
-    band_study.py's docstring said 25 for a long time and this module repeated
-    it. The file says otherwise, and a number nobody recomputed is a number
-    nobody owns.
+    The name of this quantity changed under the module and the module did not
+    notice. Until scripts/build_rotations.py existed, dominance.json held a
+    fixed list and `n_assets` was the basket - 14 to 24 assets, which is the
+    figure the previous report printed as "panier de 14 a 24 actifs". The
+    regenerated file writes `n_assets` as the size of the whole CoinMetrics
+    universe on that date, 71 to 118, while the alt basket is a fixed top
+    `bs_TOP_N` by market cap. Printing the new number under the old sentence
+    would have multiplied the declared basket by five without a single line of
+    code changing.
+
+    So this returns the universe and the caller prints it as the universe. The
+    basket size is not measured here at all: it is br.TOP_N, a constant of the
+    generator, and reading it from there is the only way the two cannot drift.
     """
     n = [v.get("n_assets") for v in dom.values() if v.get("n_assets")]
     return (min(n), max(n), len(n)) if n else (None, None, 0)
+
+
+# The majors this cycle's alt rotation would actually have been about. Checked
+# against the index that was really built rather than asserted: the commit
+# message that withdrew the alt results lists them, and a list living only in
+# a commit message is a claim nobody can re-run.
+CYCLE_MAJORS = ("sol", "sui", "hype", "apt", "arb", "op", "ton", "near",
+                "inj", "tia", "sei", "avax")
+
+
+def absent_majors(path=None, majors=CYCLE_MAJORS):
+    """Which cycle majors NEVER entered the alt index, measured from its log.
+
+    analysis/basket_log.txt records the composition at every change, so the set
+    of assets the index ever held is recoverable. That set is what decides
+    whether the alt targets measure this cycle's rotation, and it is cheaper to
+    read it than to trust a sentence about it.
+
+    Returns (absent, present, n_assets_ever). An empty `absent` would mean the
+    withdrawal below is over-cautious and should be revisited - which is why
+    the report prints the measurement next to the withdrawal instead of only
+    the conclusion.
+    """
+    path = path or os.path.join(ANALYSIS, "basket_log.txt")
+    if not os.path.exists(path):
+        return None
+    ever = set()
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            parts = line.split("  ", 1)
+            if len(parts) == 2 and parts[0][:4].isdigit():
+                ever.update(a.strip() for a in parts[1].split(",") if a.strip())
+    return (tuple(m for m in majors if m not in ever),
+            tuple(m for m in majors if m in ever),
+            len(ever))
 
 
 def calendar_gaps(dates):
@@ -1025,6 +1195,8 @@ def build_inputs():
     data_end = min(max(rot[k]) for k in rot)
     ethbtc = fs.load_ethbtc()
     context = {"basket": basket_span(dom),
+               "absent_majors": absent_majors(),
+               "gate_tiers": downstream_tiers(),
                "divergence": target_divergence(rot["eth_btc"], ethbtc),
                "fng_sources": fng_source_divergence(
                    signals["Fear & Greed"],
@@ -1212,9 +1384,17 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
     o("  meme endroit. Une ligne eth_btc d ici ne se compare donc pas terme a")
     o("  terme a analysis/walkforward.txt, et le nombre de plis est ce qui le")
     o("  montre.")
-    o("  Dominance : panier de %d a %d actifs selon le jour (%d jours mesures)."
+    o("  Dominance : UNIVERS de %d a %d actifs selon le jour (%d jours"
       % (b_lo, b_hi, b_n))
-    o("  Le NIVEAU de dominance est donc biaise ; seuls les rangs servent ici.")
+    o("  mesures). Attention au nom de ce chiffre : dominance.json['n_assets']")
+    o("  designait le PANIER tant qu il etait fige (14 a 24 actifs), il")
+    o("  designe l UNIVERS depuis build_rotations.py. Le panier alt, lui, est")
+    o("  le top %d par capitalisation, reconstitue a chaque date. Le rapport"
+      % br.TOP_N)
+    o("  precedent imprimait le nouveau nombre sous l ancienne phrase : le")
+    o("  panier declare aurait ete multiplie par cinq sans qu une ligne de")
+    o("  code change.")
+    o("  Le NIVEAU de dominance reste biaise ; seuls les rangs servent ici.")
     fng = ctx.get("fng_sources")
     if fng:
         o("  Fear & Greed : le depot porte DEUX series F&G, jamais comparees")
@@ -1233,6 +1413,40 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
               % (fng["median_diff"], fng["max_diff"]))
         else:
             o("    aucun jour commun - les deux ne se recoupent pas du tout.")
+    o("")
+    o("")
+    o("CIBLES RETIREES - un refus qui n est pas statistique")
+    o("-" * 74)
+    o("  Les cibles %s sont RETIREES."
+      % ", ".join(tmark(t) for t in sorted(WITHDRAWN_TARGETS)))
+    o("  Motif : l indice alt est le top %d par capitalisation d un univers"
+      % br.TOP_N)
+    o("  CoinMetrics community qui ne contient aucun des majors de ce cycle.")
+    am = ctx.get("absent_majors")
+    if am:
+        absent, present, ever = am
+        o("  Mesure sur analysis/basket_log.txt - %d actifs ont appartenu a l"
+          % ever)
+        o("  indice depuis 2019. Sur les %d majors de ce cycle testes :"
+          % len(CYCLE_MAJORS))
+        o("    JAMAIS dans l indice : %s"
+          % (", ".join(absent) if absent else "aucun"))
+        o("    presents             : %s"
+          % (", ".join(present) if present else "aucun"))
+        if not absent:
+            o("  Aucun absent mesure : le retrait ci-dessus serait alors trop")
+            o("  prudent et doit etre rouvert. Ce n est pas le cas de ce run.")
+    o("  L indice mesure donc un panier 2017-2021, pas la rotation alt qu on")
+    o("  chercherait a trader. Le commit HEAD de build_rotations.py retire ces")
+    o("  resultats au lieu de les nuancer, et ce module applique le retrait")
+    o("  AVANT tout critere statistique : H08 a H11 sont mesurees, ecrites,")
+    o("  et rendues NON_TESTABLE quel que soit leur p. Une hypothese qui bat")
+    o("  sa nulle sur le mauvais univers reste une reponse a une autre")
+    o("  question.")
+    o("  Elles restent enregistrees et mesurees : ce fichier n efface rien, et")
+    o("  une hypothese retiree qui disparait ne laisse aucune trace d avoir")
+    o("  ete posee - l oubli exact que le registre existe pour empecher.")
+    o("  Reste mesurable sur donnees gratuites : eth_btc, une seule jambe.")
     o("")
     o("POURQUOI CE FICHIER EXISTE")
     o("-" * 74)
@@ -1272,6 +1486,8 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
     o("  hypotheses enregistrees        : %d" % len(reg["entries"]))
     o("  comparaisons tentees ce run    : %d" % attempted)
     o("  comparaisons SCOREES (cumul)   : %d" % family_size(reg))
+    o("  dont sans empreinte de donnees : %d (methode anterieure)"
+      % sum(1 for k in reg["comparisons"] if k.count("|") < 7))
     o("  alpha famille                  : %.3f" % FAMILY_ALPHA)
     o("  barre Bonferroni alpha/n       : %.4f" % bar)
     o("")
@@ -1291,6 +1507,30 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
       % family_size(reg))
     o("     chance de passer. C est le prix, paye parce que l alternative -")
     o("     aucun compteur - a deja produit un gradient dissous.")
+    o("   - et elle ne corrige que ce qu elle peut IDENTIFIER. Jusqu a ce run")
+    o("     la cle d une comparaison etait (id, cible, fenetres, date de fin)")
+    o("     et ne disait rien des VALEURS. analysis/dominance.json a ete")
+    o("     regenere pendant ce run - autre panier, autre univers, memes")
+    o("     dates - et les deux mesures se seraient ecrasees sur une seule")
+    o("     cle. Une plage de dates n identifie pas des donnees. La cle porte")
+    o("     desormais une empreinte du signal et de la cible, donc remesurer")
+    o("     sur donnees regenerees compte comme le second tirage que c est.")
+    o("")
+    o("EMPREINTES DES DONNEES MESUREES")
+    o("-" * 74)
+    o("  %-5s %-24s %-10s %14s %14s" % ("id", "signal", "cible",
+                                        "signal", "cible"))
+    for hid, sig, tgt, _, _, _ in HYPOTHESES:
+        m = measurements.get(hid)
+        if not m or not m.get("signal_fingerprint"):
+            continue
+        o("  %-5s %-24s %-10s %14s %14s"
+          % (hid, sig, tmark(tgt), m["signal_fingerprint"],
+             m["target_fingerprint"]))
+    o("  sha256 tronque a 12 caracteres, sur la serie RESTREINTE effectivement")
+    o("  parcourue. Tronque pour etre comparable a l oeil dans un rapport :")
+    o("  c est un risque de collision accepte, et il ne protege de rien")
+    o("  d intentionnel - il detecte un accident, pas une falsification.")
     o("")
     o("MESURES - walk-forward, direction hors echantillon")
     o("-" * 74)
@@ -1380,6 +1620,14 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
                                         s["fold_median"]),
                  m["folds"], s["matched"], base, mean, gap))
     o("")
+    o("  Absentes de ce tableau : les hypotheses a moins de %d plis, et celles"
+      % MIN_FOLDS)
+    o("  dont la cible est retiree (%s)."
+      % ", ".join(tmark(t) for t in sorted(WITHDRAWN_TARGETS)))
+    o("  Aucune nulle n a ete tiree pour")
+    o("  elles - leur verdict les refuse avant toute statistique, et tirer")
+    o("  serait payer des minutes pour un chiffre que la regle s interdit de")
+    o("  lire. Leur marche reel, lui, est mesure et reste au tableau MESURES.")
     o("  utilis. = tirages ayant produit au moins un pli ; degen. = tirages")
     o("  sans aucun pli identifiable, donc sans test.")
     o("  base moyenne = SUR QUOI la moyenne et l ecart portent, et sur combien")
@@ -1443,7 +1691,10 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
          "barre"))
     for hid, _, tgt, _, _, _ in HYPOTHESES:
         m = measurements.get(hid)
-        if not m or m["folds"] < MIN_FOLDS:
+        # Same filter as the table above, for the same reason: a row with no
+        # null has no p and no floor, and printing a blank line for it would
+        # invite the reader to wonder which number was suppressed.
+        if not m or not m["nulls"]:
             continue
         o("  %-5s %-10s %5d %9d %9.4f %9.4f %-13s %.4f"
           % (hid, tmark(tgt), m["folds"], m["null_matched"], m["floor"],
@@ -1501,6 +1752,23 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
     o("  bilan : " + ", ".join("%s=%d" % (k, counts[k])
                                for k in VERDICTS if k in counts))
     o("")
+    tiers = ctx.get("gate_tiers")
+    if tiers:
+        o("CE QUE LA PORTE EN A FAIT - lu dans dimensions.py, pas suppose")
+        o("-" * 74)
+        o("  Un registre dont personne ne lit les verdicts est un journal")
+        o("  intime. Le tier reel de chaque signal juge ici, lu a l execution")
+        o("  dans dimensions.SIGNAL_REGISTRY :")
+        for label in sorted(tiers):
+            hids = [h[0] for h in HYPOTHESES if h[1] == label]
+            vs = ", ".join(sorted({verdicts[h]["verdict"] for h in hids}))
+            o("    %-24s tier %-6s   ici : %s (%s)"
+              % (label, tiers[label] or "absent", vs, ", ".join(hids)))
+        o("  Les signaux de rotation (dominance, niveau ETH/BTC) n ont pas de")
+        o("  cle dans la porte : ce sont des entrees de rotation, pas des")
+        o("  signaux de porte, et leur en inventer une fabriquerait une")
+        o("  correspondance.")
+        o("")
     o("CONTRE QUOI LIRE UN ACCORD WALK-FORWARD - le controle de soi")
     o("-" * 74)
     ctrl = measurements.get(CONTROL_ID)
@@ -1553,15 +1821,17 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
         o("     information ne soit en jeu. L accord mesure alors la")
         o("     persistance du regime, pas le contenu du signal.")
         o("   - donc un accord doit se lire CONTRE LE CONTROLE, pas contre")
-        o("     50%. Aucun signal de ce groupe ne depasse %s, et le depasser"
+        o("     50%%. Aucun signal de ce groupe ne depasse %s, et le depasser"
           % CONTROL_ID)
         o("     serait la seule facon de montrer qu il apporte autre chose que")
         o("     cette persistance.")
-        o("   - et cela vaut d abord contre ce run lui-meme : les trois accords")
-        o("     a 100%% du tableau MESURES (%s) ne sont pas trois succes, ce"
-          % ", ".join([CONTROL_ID] + ties))
-        o("     sont un controle degenere et deux resultats qui ne s en")
-        o("     distinguent pas.")
+        o("   - et cela vaut d abord contre ce run lui-meme : les %d accords"
+          % (1 + len(ties)))
+        o("     a %.0f%% de ce groupe (%s) ne sont pas %d succes, ce sont un"
+          % (best * 100, ", ".join([CONTROL_ID] + ties), 1 + len(ties)))
+        o("     controle degenere et %d resultat(s) qui ne s en distinguent"
+          % len(ties))
+        o("     pas.")
         o("  Le biais 'un seul regime' figure aussi dans le bloc final. Il y")
         o("  est une declaration ; ici il est chiffre par la mesure qui le")
         o("  demontre. C est la difference entre avouer une limite et la")
@@ -1588,38 +1858,54 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
         scored_dirs.setdefault(sig, []).append((hid, tgt, m["direction"],
                                                 m["dir_votes"]))
     pairs = {s: v for s, v in scored_dirs.items() if len(v) >= 2}
-    o("  Le fait etabli n.4 du projet - le signe s inverse selon la cible -")
-    o("  est enregistre ici comme PREDICTION : H01 (+1 sur eth_btc) contre H08")
-    o("  (-1 sur alt_eth%s). Ce couple n a pas ete remesure par ce run :" % ALT_MARK)
     by_id = {h[0]: h for h in HYPOTHESES}
+    o("  Le fait etabli n.4 du projet - le signe s inverse selon la cible -")
+    o("  est enregistre ici comme PREDICTION : H01 (%+d sur %s) contre H08"
+      % (by_id["H01"][3], tmark(by_id["H01"][2])))
+    o("  (%+d sur %s). Ce run ne peut pas trancher, et pour DEUX raisons"
+      % (by_id["H08"][3], tmark(by_id["H08"][2])))
+    o("  differentes qu il ne faut pas confondre :")
     for hid in ("H01", "H08"):
         m = measurements.get(hid)
         o("    %s %-10s %s, %d plis sur %d fenetres decoupees"
           % (hid, tmark(by_id[hid][2]), verdicts[hid]["verdict"],
              m["folds"] if m else 0, m["attempts"] if m else 0))
-    o("  Une inversion exige DEUX cotes mesures. Un seul cote ne dit rien sur")
-    o("  une inversion, quel que soit son signe. H10 mesure %s contre +1"
-      % _fmt_dir(measurements["H10"]["direction"] if measurements.get("H10")
-                 else None))
-    o("  attendu : cela falsifie la regle Tier A sur alt_eth%s, et rien de plus."
-      % ALT_MARK)
+    o("   - H01 manque de plis : le decoupage n a pas produit assez de")
+    o("     fenetres exploitables. C est une limite d echantillon, elle")
+    o("     s efface avec le temps.")
+    o("   - H08 porte sur une cible RETIREE. Cette limite-la ne s efface pas")
+    o("     avec le temps : il faudrait un autre univers d actifs, donc une")
+    o("     autre source de donnees.")
+    o("  Une inversion exige DEUX cotes mesurables. Aucun des deux cotes ne")
+    o("  l est ici, et le fait etabli n.4 reste donc une prediction ecrite,")
+    o("  non un resultat de ce run - dans un sens comme dans l autre.")
     if pairs:
-        o("  Signaux SCORES sur au moins deux cibles avec une direction")
-        o("  identifiable de chaque cote :")
+        o("  Signaux mesures sur au moins deux cibles avec une direction")
+        o("  identifiable de chaque cote (verdict de chaque cote en regard) :")
         for sig, rows in sorted(pairs.items()):
             signs = set(d for _, _, d, _ in rows)
             o("    %-20s %s  ->  %s"
               % (sig,
-                 " | ".join("%s %s %s" % (hid, tmark(tgt), _fmt_dir(d, v))
+                 " | ".join("%s %s %s %s"
+                            % (hid, tmark(tgt), _fmt_dir(d, v),
+                               verdicts[hid]["verdict"])
                             for hid, tgt, d, v in rows),
                  "signes opposes" if len(signs) > 1 else "meme signe"))
-        o("  Ces majorites sont DESCRIPTIVES : aucune n a ete testee contre une")
-        o("  nulle, et chacune de ces hypotheses a par ailleurs ete REJETEE sur")
-        o("  sa propre direction enregistree. L inversion visible ici contredit")
-        o("  donc ce qui etait ecrit, elle ne le confirme pas.")
+        withdrawn_side = sorted({hid for rows in pairs.values()
+                                 for hid, tgt, _, _ in rows
+                                 if tgt in WITHDRAWN_TARGETS})
+        o("  Ces majorites sont DESCRIPTIVES : aucune n a ete testee contre")
+        o("  une nulle. Et toute ligne dont un cote est %s porte sur une cible"
+          % ALT_MARK)
+        if withdrawn_side:
+            o("  retiree (%s) : elle ne peut donc etayer NI une inversion NI"
+              % ", ".join(withdrawn_side))
+            o("  son absence. Lire un signe dans cette colonne serait rouvrir")
+            o("  par la bande le resultat que la section CIBLES RETIREES")
+            o("  refuse.")
     else:
         o("  Aucun signal n a produit deux directions identifiables sur deux")
-        o("  cibles scorees dans ce run.")
+        o("  cibles mesurees dans ce run.")
     o("")
     o("BIAIS A DECLARER, VALABLES POUR CHAQUE LIGNE CI-DESSUS")
     o("-" * 74)
@@ -1631,6 +1917,14 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
       % ALT_MARK)
     o("    repetee dans chaque tableau pour qu une ligne citee seule la")
     o("    garde avec elle.")
+    if am and am[0]:
+        o("    Cette marque partagee nomme trois actifs ; ce run en a mesure")
+        o("    %d absents de l indice (%s)."
+          % (len(am[0]), ", ".join(am[0])))
+        o("    Elle est donc plus faible que la mesure, et c est la section")
+        o("    CIBLES RETIREES qui porte le chiffre. La chaine reste celle de")
+        o("    rotation_matrix.py : la reecrire ici la ferait diverger entre")
+        o("    deux rapports, ce qui coute plus qu elle ne rapporte.")
     o("  - fenetres forward chevauchantes : les plis ne sont pas independants,")
     o("    ce qui rend le controle par melange indispensable et laisse le p")
     o("    optimiste malgre tout.")
@@ -1645,9 +1939,11 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
     o("    c est la que ce biais cesse d etre un aveu pour devenir un chiffre,")
     o("    et c est ce chiffre - pas 50% - qui est la reference des accords")
     o("    imprimes plus haut.")
-    o("  - panier dominance de %d a %d actifs selon le jour : niveau biaise,"
+    o("  - dominance calculee sur un UNIVERS de %d a %d actifs selon le jour"
       % (b_lo, b_hi))
-    o("    seuls les rangs sont utilisables.")
+    o("    (et non un panier de cette taille : le panier alt est le top %d)."
+      % br.TOP_N)
+    o("    Le niveau est donc biaise ; seuls les rangs sont utilisables.")
     o("  - la cible eth_btc est l index rotations.json, pas analysis/")
     o("    ethbtc.json ; ecart forward maximum mesure %.2f pt (voir en-tete)."
       % (div["max_diff"] if div else float("nan")))
