@@ -44,7 +44,9 @@ Run: python -m unittest discover -s tests -v
 """
 
 import os
+import random
 import re
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -72,6 +74,41 @@ NO_BASKET = "analysis/basket_log.txt absent - lancer scripts/build_rotations.py"
 NULL_ROW = re.compile(
     r"^\s+(H\d+)\s+(\S+)\s+(melange|decalage)\s+(\d+)\s+(\d+)\s+(\d+)\s+"
     r"(.+?)\s+(\d+)\s+(\d+)\s+(\S+\(\d+\)|n=\d+ insuff\.)\s+(\S+)\s+(\S+)\s*$")
+
+
+# The two numbers the report publishes about its own bar, and the counterfactual
+# it publishes about the withdrawal. Read off the page rather than out of the
+# module: the defect was a variable and a printed count disagreeing, so a test
+# reading the variable would have passed while the artifact said 8 comparisons
+# over a bar of 0.05/10.
+BAR_LINE = re.compile(r"^\s*barre Bonferroni alpha/n\s*:\s*([0-9.]+)\s*$")
+SCORED_LINE = re.compile(
+    r"^\s*comparaisons SCOREES \(cumul\)\s*:\s*(\d+)\s*$")
+DRAWS_DONE = re.compile(
+    r"^\s*tirages de nulle reellement effectues\s*:\s*(\d+)\s*$")
+DRAWS_COUNTERFACTUAL = re.compile(
+    r"^\s*tirages si WITHDRAWN_TARGETS etait vide\s*:\s*(\d+)\s*$")
+DRAWS_SAVED = re.compile(r"^\s*epargnes par le retrait\s*:\s*(\d+)")
+
+# One row of the control table: id, signal, agreement, agree/folds, 0.5**folds,
+# verdict.
+CONTROL_ROW = re.compile(
+    r"^\s{4}(H\d+)\s+(.+?)\s+(\d+)%\s+(\d+)/(\d+)\s+([0-9.]+)\s+([A-Z_]+)")
+
+# Template artefacts. "(s)" is a plural nobody branched, and a parenthesis
+# holding nothing - or holding only the empty-list fallback of a join - is a
+# sentence that was written for a case the run did not produce. wf.direction()
+# is a function name, so an empty pair glued to an identifier is spared.
+TEMPLATE_ARTEFACT = re.compile(
+    r"\(s\)|(?<![A-Za-z0-9_])\(\s*\)|\((?:aucun|aucune|-)\)")
+
+
+def first_group(pattern, text, cast=str):
+    for line in text.splitlines():
+        m = pattern.match(line)
+        if m:
+            return cast(m.group(1))
+    return None
 
 
 def entry(direction=1, threshold=0.70, registered_on="2026-01-01",
@@ -831,15 +868,24 @@ class TestMeasurementLayer(unittest.TestCase):
                         registry.WINDOW, registry.TRAIN_DAYS,
                         registry.TEST_DAYS), want, "%s -> %s" % (sig, tgt))
 
-    def test_the_control_predicts_itself_better_than_any_real_signal(self):
-        """The calibration the report is built on: a DEGENERATE predictor takes
-        the top of the table, so a walk-forward agreement has to be read
-        against it and not against 50%."""
+    def test_the_degenerate_control_is_the_target_entered_as_its_own_signal(self):
+        """Degenerate BY CONSTRUCTION, checkable in one line. The report used
+        to call H03 degenerate on the strength of a sentence, and H03 is a
+        mean-reversion question that walkforward.py scores as a candidate."""
+        ctrl = registry.by_hyp_id(registry.CONTROL_ID)
+        self.assertEqual(ctrl[1], registry.DEGENERATE_SIGNAL)
+        self.assertEqual(self.signals[registry.DEGENERATE_SIGNAL],
+                         self.targets[ctrl[2]])
+
+    def test_the_degenerate_control_takes_the_top_on_more_folds_than_any_signal(self):
+        """The calibration the report is built on: a predictor carrying no
+        information at all takes the top of the table, so an agreement has to
+        be read against it and not against 50%."""
         ctrl = registry.by_hyp_id(registry.CONTROL_ID)
         agree, folds = wf.walk(self._series(ctrl[1], ctrl[2]),
                                self.targets[ctrl[2]], registry.WINDOW,
                                registry.TRAIN_DAYS, registry.TEST_DAYS)
-        self.assertEqual((agree, folds), (5, 5))
+        self.assertEqual((agree, folds), (11, 11))
         for hid, sig, tgt, _, _, _ in registry.HYPOTHESES:
             if tgt != ctrl[2] or hid == registry.CONTROL_ID:
                 continue
@@ -847,12 +893,16 @@ class TestMeasurementLayer(unittest.TestCase):
                            registry.WINDOW, registry.TRAIN_DAYS,
                            registry.TEST_DAYS)
             self.assertLessEqual((a / f) if f else 0.0, agree / folds, hid)
+            # A rate alone is not comparable across fold counts, which is why
+            # the report prints 0.5**folds beside it: the control has to hold
+            # the top on DEPTH as well, or "it wins" means nothing.
+            self.assertLessEqual(f, folds, hid)
 
     def test_the_in_sample_direction_disagrees_with_the_out_of_sample_one(self):
-        """The control again: the full-sample gradient says +1, the majority of
-        test folds says -1. This is why criterion 2 reads the out-of-sample
-        field, and it is measured rather than argued."""
-        ctrl = registry.by_hyp_id(registry.CONTROL_ID)
+        """The persistence reference: the full-sample gradient says +1, the
+        majority of test folds says -1. This is why criterion 2 reads the
+        out-of-sample field, and it is measured rather than argued."""
+        ctrl = registry.by_hyp_id(registry.PERSISTENCE_ID)
         s = self._series(ctrl[1], ctrl[2])
         fwd = self.targets[ctrl[2]]
         pairs, _ = registry.walk_folds(s, fwd)
@@ -1157,8 +1207,7 @@ class TestReport(unittest.TestCase):
         reg = registry.new_registry("2026-09-01")
         measurements, verdicts = {}, {}
         for hid, sig, tgt, d, thr, why in registry.HYPOTHESES:
-            e = registry.register(reg, hid, sig, tgt, d, thr,
-                                  registry.TODAY, why)
+            registry.register(reg, hid, sig, tgt, d, thr, registry.TODAY, why)
             m = measurement(comparison_key=registry.comparison_key(
                 hid, tgt, 365, 365, 180, "2026-08-31", "aaa", "bbb"),
                 data_end="2026-08-31", prereg="POST")
@@ -1166,7 +1215,15 @@ class TestReport(unittest.TestCase):
                 m["nulls"] = {mode: nulls_for[hid]
                               for mode in registry.NULL_MODES}
             measurements[hid] = m
-            verdicts[hid] = registry.adoption_verdict(e, m, 0.0083)
+        # Two passes, exactly as main() runs them. A bar handed in by the test
+        # would let the rendered page stay self-consistent while the module
+        # that writes it is not, which is the defect this render is checked
+        # for: 8 comparisons printed over a bar of 0.05/10.
+        bar = registry.bonferroni_bar(
+            len(registry.provisional_family(reg, measurements)))
+        for hid, _, _, _, _, _ in registry.HYPOTHESES:
+            e = registry.find(reg, hid)
+            verdicts[hid] = registry.adoption_verdict(e, measurements[hid], bar)
             registry.record_result(reg, hid, verdicts[hid], registry.TODAY)
         ctx = {"basket": (71, 118, 2800),
                "absent_majors": (registry.CYCLE_MAJORS, (), 45),
@@ -1185,9 +1242,17 @@ class TestReport(unittest.TestCase):
                                      "agree_match": True})],
                "gate_tiers": {label: "track"
                               for label in registry.GATE_KEYS},
-               "runtime_s": 65.0, "total_draws": 1000}
-        return registry.render_report(measurements, verdicts, reg, 0.0083,
-                                      11, "2026-08-31", ctx).text()
+               "tier_a": registry.tier_a_coverage(
+                   {"mvrv_z_score", "nvt", "stablecoin_supply_ratio",
+                    "sth_realized_price", "puell_multiple", "fear_greed"}),
+               "sth_days": 1456,
+               "runtime_s": 65.0, "total_draws": 1000,
+               "draws_no_withdrawal": 2500,
+               "withdrawn_costly": ["H10", "H11"],
+               "withdrawn_already_short": ["H08", "H09"]}
+        return registry.render_report(measurements, verdicts, reg, bar,
+                                      len(registry.HYPOTHESES), "2026-08-31",
+                                      ctx).text()
 
     def _rows(self, hid):
         return [l for l in self.text.splitlines() if l.strip().startswith(hid)]
@@ -1325,6 +1390,319 @@ class TestReport(unittest.TestCase):
         self.assertNotIn("%%", self.text)
 
 
+class TestTheBarIsTheCountItPrints(unittest.TestCase):
+    """The defect this module exists to catch, committed by the module itself.
+
+    analysis/registry_report.txt printed "comparaisons SCOREES (cumul) : 8"
+    and "barre Bonferroni alpha/n : 0.0050" on two adjacent lines. 0.05/8 is
+    0.00625; 0.0050 is 0.05/10. main() built the denominator from every
+    measurement clearing MIN_FOLDS, so the two withdrawn targets that clear it
+    - refused before any statistic, never recorded as comparisons - were
+    counted in the bar and nowhere else.
+
+    These read the RENDERED report. A test on the internal variable would have
+    passed on the run that shipped the contradiction.
+    """
+
+    def test_the_rendered_bar_is_alpha_over_the_rendered_count(self):
+        text = TestReport._render()
+        bar = first_group(BAR_LINE, text)
+        count = first_group(SCORED_LINE, text, int)
+        self.assertIsNotNone(bar)
+        self.assertTrue(count)
+        self.assertEqual(bar, "%.4f" % (registry.FAMILY_ALPHA / count),
+                         "barre %s imprimee sous un compte de %s" % (bar, count))
+
+    @unittest.skipUnless(HAVE_REPORT, NO_REPORT)
+    def test_the_bar_on_disk_is_alpha_over_the_count_on_disk(self):
+        """The same assertion against the artifact a reader actually holds."""
+        with open(registry.REPORT_PATH, encoding="utf-8") as f:
+            text = f.read()
+        bar = first_group(BAR_LINE, text)
+        count = first_group(SCORED_LINE, text, int)
+        self.assertIsNotNone(bar)
+        self.assertTrue(count)
+        self.assertEqual(bar, "%.4f" % (registry.FAMILY_ALPHA / count),
+                         "barre %s imprimee sous un compte de %s" % (bar, count))
+
+    def _family(self, *specs):
+        reg = registry.new_registry("2026-01-01")
+        measurements = {}
+        for hid, tgt, folds in specs:
+            registry.register(reg, hid, "signal", tgt, 1, 0.70, "2026-01-01",
+                              "test")
+            measurements[hid] = measurement(comparison_key="cle-" + hid,
+                                            folds=folds)
+        return registry.provisional_family(reg, measurements)
+
+    def test_a_withdrawn_target_never_enters_the_denominator(self):
+        fam = self._family(("H01", "eth_btc", 9), ("H02", "alt_eth", 9))
+        self.assertEqual(fam, {"cle-H01"})
+
+    def test_a_test_too_short_to_conclude_never_enters_the_denominator(self):
+        fam = self._family(("H01", "eth_btc", 9),
+                           ("H02", "eth_btc", registry.MIN_FOLDS - 1))
+        self.assertEqual(fam, {"cle-H01"})
+
+    def test_the_denominator_is_exactly_what_the_rule_marks_scored(self):
+        """Asked of adoption_verdict rather than re-derived, so the two cannot
+        drift. This is the assertion that would have failed before the fix."""
+        reg = registry.new_registry("2026-01-01")
+        measurements = {}
+        for hid, tgt in (("H01", "eth_btc"), ("H02", "alt_eth"),
+                         ("H03", "alt_btc"), ("H04", "eth_btc")):
+            registry.register(reg, hid, "signal", tgt, 1, 0.70, "2026-01-01",
+                              "test")
+            measurements[hid] = measurement(comparison_key="cle-" + hid)
+        fam = registry.provisional_family(reg, measurements)
+        scored = {m["comparison_key"] for hid, m in measurements.items()
+                  if registry.adoption_verdict(registry.find(reg, hid), m,
+                                               0.01)["scored"]}
+        self.assertEqual(fam, scored)
+        self.assertEqual(registry.bonferroni_bar(len(fam)),
+                         registry.FAMILY_ALPHA / 2)
+
+    def test_the_cumulative_count_is_never_dropped(self):
+        """Comparisons scored by earlier runs stay in the denominator; the fix
+        removes what was never scored, not what was scored before."""
+        reg = registry.new_registry("2026-01-01")
+        reg["comparisons"].append("une-vieille-cle")
+        registry.register(reg, "H01", "signal", "eth_btc", 1, 0.70,
+                          "2026-01-01", "test")
+        fam = registry.provisional_family(
+            reg, {"H01": measurement(comparison_key="cle-H01")})
+        self.assertEqual(fam, {"une-vieille-cle", "cle-H01"})
+
+
+@unittest.skipUnless(HAVE_REGISTRY and HAVE_REPORT, NO_REPORT)
+class TestTheWithdrawalSavingIsMeasured(unittest.TestCase):
+    """A comment read "In this run that is 1000 of 3000 draws and rather more
+    than half the wall time". No run recomputed it, and it was wrong in both
+    halves: the counterfactual counts only the hypotheses the fold floor would
+    NOT have stopped anyway. The report now prints the counterfactual."""
+
+    @classmethod
+    def setUpClass(cls):
+        with open(registry.REPORT_PATH, encoding="utf-8") as f:
+            cls.text = f.read()
+        reg = registry.load()
+        cls.last = {e["id"]: e["results"][-1] for e in reg["entries"]
+                    if e["results"]}
+
+    def test_the_saving_is_the_difference_it_prints(self):
+        done = first_group(DRAWS_DONE, self.text, int)
+        cf = first_group(DRAWS_COUNTERFACTUAL, self.text, int)
+        saved = first_group(DRAWS_SAVED, self.text, int)
+        for v in (done, cf, saved):
+            self.assertIsNotNone(v)
+        self.assertEqual(saved, cf - done)
+
+    def test_the_counterfactual_is_recomputable_from_the_persisted_results(self):
+        """Only the withdrawal rule is lifted: the fold floor stays, so a
+        hypothesis under MIN_FOLDS was never saved by the withdrawal."""
+        cf = first_group(DRAWS_COUNTERFACTUAL, self.text, int)
+        expected = sum(len(registry.NULL_MODES) * registry.SHUFFLES
+                       for r in self.last.values()
+                       if (r.get("folds") or 0) >= registry.MIN_FOLDS)
+        self.assertEqual(cf, expected)
+
+    def test_the_draws_actually_run_are_the_ones_on_disk(self):
+        done = first_group(DRAWS_DONE, self.text, int)
+        self.assertEqual(done, sum(len(registry.NULL_MODES) * r["shuffles"]
+                                   for r in self.last.values()))
+
+
+class TestEachHypothesisDrawsItsOwnNull(unittest.TestCase):
+    """random.Random(SEED) per call handed H03 and H04 the identical stream of
+    shuffles: two nulls of one family that were the same experiment relabelled,
+    so their p-values moved together. That is the dependence the Bonferroni
+    section discusses for the tests, reintroduced underneath them."""
+
+    def test_two_hypotheses_do_not_share_a_seed(self):
+        seeds = {registry.null_seed(registry.SEED, h[0])
+                 for h in registry.HYPOTHESES}
+        self.assertEqual(len(seeds), len(registry.HYPOTHESES))
+
+    def test_two_seeds_do_not_share_a_permutation_stream(self):
+        def draw(hid):
+            rng = random.Random(registry.null_seed(registry.SEED, hid))
+            v = list(range(40))
+            rng.shuffle(v)
+            return v
+        self.assertNotEqual(draw("H03"), draw("H04"))
+        self.assertEqual(draw("H03"), draw("H03"))
+
+    def test_the_seed_is_stable_between_processes(self):
+        """hash() of a str is salted per interpreter, so a seed built on it
+        would draw a different null in every process and none of them could be
+        reproduced from the file."""
+        scripts = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "..", "scripts")
+        code = ("import sys; sys.path.insert(0, %r); import registry; "
+                "print(registry.null_seed(registry.SEED, 'H04'))" % scripts)
+        seen = set()
+        for salt in ("1", "2"):
+            env = dict(os.environ, PYTHONHASHSEED=salt)
+            seen.add(subprocess.check_output(
+                [sys.executable, "-c", code], env=env).decode().strip())
+        self.assertEqual(len(seen), 1, seen)
+        self.assertEqual(seen.pop(),
+                         str(registry.null_seed(registry.SEED, "H04")))
+
+    def test_the_report_declares_the_seeding(self):
+        """Correlated nulls are only acceptable declared, and these are not
+        correlated any more - so what is declared is the fix and its limit."""
+        text = TestReport._render()
+        self.assertIn("PROPRE suite de permutations", text)
+        self.assertIn("sha256", text)
+
+
+class TestNoTemplateArtefactSurvivesIntoTheReport(unittest.TestCase):
+    """The rendered file is the deliverable. It carried "1 resultat(s)" and
+    "aucune sur autant de plis (aucune)": a plural nobody branched, and a
+    parenthesis holding the empty-list fallback of a join."""
+
+    def _check(self, text, label):
+        for line in text.splitlines():
+            m = TEMPLATE_ARTEFACT.search(line)
+            self.assertIsNone(m, "%s: %r dans %r"
+                              % (label, m.group(0) if m else "", line))
+
+    def test_the_rendered_report_has_no_unbranched_plural(self):
+        self._check(TestReport._render(), "rendu")
+
+    @unittest.skipUnless(HAVE_REPORT, NO_REPORT)
+    def test_the_report_on_disk_has_no_unbranched_plural(self):
+        with open(registry.REPORT_PATH, encoding="utf-8") as f:
+            self._check(f.read(), "disque")
+
+    def test_a_function_name_is_not_an_empty_parenthesis(self):
+        """The guard has to spare wf.direction(), or the report cannot name
+        the function whose behaviour the whole shuffle section is about."""
+        self.assertIsNone(TEMPLATE_ARTEFACT.search("wf.direction() rend None"))
+        self.assertIsNotNone(TEMPLATE_ARTEFACT.search("1 resultat(s)"))
+        self.assertIsNotNone(TEMPLATE_ARTEFACT.search("sur autant de plis ()"))
+        self.assertIsNotNone(TEMPLATE_ARTEFACT.search("de plis (aucune)"))
+
+
+class TestAgreementIsPricedAgainstItsFoldCount(unittest.TestCase):
+    """100% on 3 folds is p = 0.125 at a coin flip, 100% on 5 is 0.031, and
+    the control table filed both under one column called "accord". The
+    incomparability is now a number in the row itself."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.rows = [m.groups() for m in
+                    (CONTROL_ROW.match(l)
+                     for l in TestReport._render().splitlines()) if m]
+
+    def test_the_control_table_has_rows_to_check(self):
+        self.assertTrue(self.rows)
+
+    def test_every_row_prices_a_perfect_run_at_its_own_fold_count(self):
+        for hid, _, _, _, folds, coin, _ in self.rows:
+            self.assertEqual(coin, "%.4f" % (0.5 ** int(folds)), hid)
+
+    def test_the_column_is_headed_and_explained(self):
+        text = TestReport._render()
+        self.assertIn("0.5**plis", text)
+        self.assertIn("pile ou face", text)
+
+    @unittest.skipUnless(HAVE_REPORT, NO_REPORT)
+    def test_the_column_is_priced_on_disk_too(self):
+        with open(registry.REPORT_PATH, encoding="utf-8") as f:
+            rows = [m.groups() for m in
+                    (CONTROL_ROW.match(l) for l in f.read().splitlines()) if m]
+        self.assertTrue(rows)
+        for hid, _, _, _, folds, coin, _ in rows:
+            self.assertEqual(coin, "%.4f" % (0.5 ** int(folds)), hid)
+
+
+class TestTheTwoReferencesAreDistinct(unittest.TestCase):
+    """H03 was described as "un predicteur DEGENERE" that "ne peut rien
+    apporter, par construction". It is the rolling percentile of the ETH/BTC
+    LEVEL against the direction of the 90-day FORWARD RETURN - a mean-reversion
+    question, and scripts/walkforward.py scores it as a candidate among
+    candidates. The degenerate control is now a measurement instead."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.text = TestReport._render()
+
+    def test_the_degenerate_control_and_the_persistence_reference_differ(self):
+        self.assertNotEqual(registry.CONTROL_ID, registry.PERSISTENCE_ID)
+
+    def test_the_control_is_registered_with_the_target_as_its_signal(self):
+        h = registry.by_hyp_id(registry.CONTROL_ID)
+        self.assertIsNotNone(h)
+        self.assertEqual(h[1], registry.DEGENERATE_SIGNAL)
+        self.assertIn("degenere", h[5])
+
+    def test_the_persistence_reference_is_no_longer_called_degenerate(self):
+        block = (self.text.split("CONTRE QUOI LIRE UN ACCORD")[1]
+                 .split("CE QUE CE RUN NE MONTRE PAS")[0])
+        claim = "%s%s" % (registry.PERSISTENCE_ID,
+                          " est un predicteur DEGENERE")
+        self.assertNotIn(claim, block)
+        self.assertNotIn("il ne peut rien apporter, par construction", block)
+        self.assertIn("PERSISTANCE", block)
+
+    def test_the_report_points_at_the_module_that_disagrees(self):
+        """A claim that walkforward.py contradicts in print has to name it."""
+        self.assertIn("walkforward.py", self.text)
+        self.assertIn("retour", self.text)
+
+
+class TestTierACoverageIsReadAtRunTime(unittest.TestCase):
+    """sth_realized_price was Tier A, readable in analysis/series.json, and in
+    neither HYPOTHESES nor GATE_KEYS - under a comment saying only the signals
+    present on both sides were listed. An uncounted family member does not make
+    the bar cautious, it makes it too loose for every other signal."""
+
+    def test_the_tier_list_is_the_gate_s_own_at_run_time(self):
+        try:
+            import dimensions
+        except Exception:
+            self.skipTest("dimensions.py illisible")
+        cov = registry.tier_a_coverage(set())
+        self.assertEqual(cov["tier_a"], sorted(dimensions.TIER_A_SIGNALS))
+
+    def test_a_demoted_signal_is_reported_as_judged_but_no_longer_tier_a(self):
+        """fear_greed was demoted after H04 and H10 were written."""
+        cov = registry.tier_a_coverage(set())
+        self.assertIn("fear_greed", cov["judged_not_tier_a"])
+
+    def test_no_tier_a_signal_with_data_on_disk_is_left_unregistered(self):
+        try:
+            import forward_study
+        except Exception:
+            self.skipTest("forward_study.py illisible")
+        cov = registry.tier_a_coverage(set(forward_study.load_series()))
+        self.assertEqual(cov["unregistered"], [],
+                         "famille sous-comptee: %s" % cov["unregistered"])
+
+    def test_the_missing_tier_a_signal_is_registered_with_a_written_direction(self):
+        rows = [h for h in registry.HYPOTHESES if h[1] == "sth_realized_price"]
+        self.assertEqual(len(rows), 1)
+        self.assertIn(rows[0][3], (1, -1))
+        self.assertIn("sth_realized_price", registry.GATE_KEYS.values())
+
+    def test_the_tracked_signal_left_out_is_a_decision_and_says_why(self):
+        """puell_multiple is readable and unregistered ON PURPOSE: a track
+        signal carries no vote, and registering it would tighten the bar on
+        the signals that do, to judge a rule nobody applies."""
+        cov = registry.tier_a_coverage({"puell_multiple"})
+        self.assertEqual(cov["tracked_not_registered"], ["puell_multiple"])
+        text = TestReport._render()
+        self.assertIn("puell_multiple", text)
+        self.assertIn("DECISION", text)
+
+    def test_the_report_prints_the_coverage_it_measured(self):
+        text = TestReport._render()
+        self.assertIn("COUVERTURE DU TIER A", text)
+        self.assertIn("TROP LACHE", text)
+
+
 class TestSourceClaims(unittest.TestCase):
     """One grep, guarding a number rather than a behaviour.
 
@@ -1346,6 +1724,14 @@ class TestSourceClaims(unittest.TestCase):
             src = self._source(name)
             self.assertNotIn("25 actifs", src, name)
             self.assertNotIn("25-asset", src, name)
+
+    def test_no_wall_time_is_asserted_in_a_docstring(self):
+        """The header said "Minutes, not seconds" above a report printing a
+        wall time in seconds on the same page. Every cost figure in this module
+        is measured by the run that prints it, or it is not written down."""
+        src = self._source("registry.py")
+        self.assertNotIn("Minutes, not seconds", src)
+        self.assertNotIn("1000 of 3000", src)
 
     def test_the_basket_size_is_read_from_its_generator_not_restated(self):
         """TOP_N lives in build_rotations.py, which decides it. Restating it

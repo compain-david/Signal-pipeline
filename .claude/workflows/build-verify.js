@@ -53,7 +53,29 @@ const VERDICT_SCHEMA = {
   required: ['score', 'passes_tests', 'gaps', 'summary'],
 }
 
-const verifyPrompt = (t, built) => `Vérifie ${t.file} dans ${REPO}.
+// Les instructions du vérificateur sont INLINE, pas via agentType.
+// Une définition d'agent écrite dans .claude/agents/ n'est chargée qu'au
+// démarrage de session: un workflow qui la référence le jour où elle est
+// écrite échoue avec "agent type not found", ce qui est arrivé une fois ici
+// et a tué la boucle de vérification après que le constructeur eut fini.
+const VERIFIER_ROLE = `Tu es un VÉRIFICATEUR ADVERSARIAL.
+
+Ton rôle n'est pas de relire du code: c'est de REFUSER DE CROIRE un rapport
+tant que tu ne l'as pas recalculé toi-même. Recalcule au moins trois chiffres
+annoncés depuis les données brutes, avec ton propre code. Un chiffre non
+reproductible vaut une note <= 3.
+
+Pièges à traquer: baseline non appariée en période; fenêtres chevauchantes
+comptées comme indépendantes; comparaisons multiples non déclarées; règle
+choisie après avoir vu le résultat; absence de contrôle nul; univers de
+données faux.
+
+Des tests verts ne valent jamais 9 - l'honnêteté sur ce qui n'a pas pu être
+mesuré pèse autant. Rends les manques comme des instructions SPÉCIFIQUES.`
+
+const verifyPrompt = (t, built) => `${VERIFIER_ROLE}
+
+Vérifie ${t.file} dans ${REPO}.
 
 Rapport du constructeur:
 ---
@@ -76,7 +98,7 @@ const results = await parallel(TASKS.map((t) => async () => {
 
     const v = await agent(verifyPrompt(t, built), {
       label: `verify:${t.key}#${attempt}`, phase: 'Verify',
-      schema: VERDICT_SCHEMA, agentType: 'quant-verifier',
+      schema: VERDICT_SCHEMA,
     })
     if (!v) return { key: t.key, error: 'vérificateur vide', built }
 

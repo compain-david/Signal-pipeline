@@ -14,7 +14,7 @@ Config   : percentile glissant sur 365 OBSERVATIONS | train 365 obs. |
            dates triee. Les trous de chaque serie sont comptes plus bas
            (colonne 'trous'), parce qu une fenetre de 365 positions sur
            une serie trouee remonte plus loin que son etiquette.
-Cout     : 63 s de calcul mesurees dans ce run, 1000 tirages de
+Cout     : 152 s de calcul mesurees dans ce run, 1500 tirages de
            nulle au total (250 par mode, 2 modes, par hypothese
            scoree). Augmenter SHUFFLES coute lineairement et
            n achete rien contre le plancher en plis.
@@ -59,11 +59,11 @@ QUELLES SERIES, EXACTEMENT
   Le NIVEAU de dominance reste biaise ; seuls les rangs servent ici.
   Fear & Greed : le depot porte DEUX series F&G, jamais comparees
   jusqu ici. Ce module lit analysis/.cache/fng.json (3130 jours,
-  depuis 2018-02-01) et ignore analysis/series.json['fear_greed'] (1456 jours,
-  depuis 2022-08-31). Le choix se justifie par la couverture : la seconde
+  depuis 2018-02-01) et ignore analysis/series.json['fear_greed'] (1455 jours,
+  depuis 2022-09-01). Le choix se justifie par la couverture : la seconde
   commence apres l altseason 2021, la seule periode ou F&G soit le
   seul signal disponible. Reconciliation mesuree ici :
-    1456 jours communs, 1456 identiques a la valeur pres, ecart
+    1455 jours communs, 1455 identiques a la valeur pres, ecart
     median 0.00, MAXIMUM 0.00 point de F&G.
 
 
@@ -86,6 +86,21 @@ CIBLES RETIREES - un refus qui n est pas statistique
   Elles restent enregistrees et mesurees : ce fichier n efface rien, et
   une hypothese retiree qui disparait ne laisse aucune trace d avoir
   ete posee - l oubli exact que le registre existe pour empecher.
+  Ce que le retrait EPARGNE, contrefactuel calcule dans ce run et
+  non plus fige dans un commentaire :
+    tirages de nulle reellement effectues     : 1500
+    tirages si WITHDRAWN_TARGETS etait vide   : 2500
+    epargnes par le retrait                   : 1000  (40% du contrefactuel)
+  Le contrefactuel ne retire QUE la regle de retrait : le plancher
+  de 4 plis resterait en place.
+  Les hypotheses retirees qui atteignent ce plancher, et qui
+  portent donc toute l economie mesuree ci-dessus :
+    H10 alt_eth*, H11 alt_btc*
+  N ont jamais rien coute au retrait :
+    H08 alt_eth*, H09 alt_eth*
+  le plancher de plis les excluait deja, et les compter comme
+  epargnees serait s attribuer une economie qu une autre regle
+  avait deja faite.
   Reste mesurable sur donnees gratuites : eth_btc, une seule jambe.
 
 POURQUOI CE FICHIER EXISTE
@@ -111,13 +126,15 @@ HYPOTHESES ENREGISTREES
   H09   dominance ETH            alt_eth*      -1     70% 2026-09-01
   H10   Fear & Greed             alt_eth*      +1     70% 2026-09-01
   H11   dominance BTC            alt_btc*      +1     70% 2026-09-01
+  H12   cible eth_btc elle-meme  eth_btc       +1     70% 2026-09-01
+  H13   sth_realized_price       eth_btc       +1     70% 2026-09-01
 
 PREENREGISTREE OU POST-HOC - calcule, pas declare
 --------------------------------------------------------------------------
   PRE exige 270 jours de donnees ARRIVEES APRES l enregistrement
   (un pli de test de 180j + un horizon de 90j), sinon POST.
   Ici : enregistrement 2026-09-01, donnees jusqu au 2026-08-31 = -1 jours inedits.
-  Donc les 11 hypotheses sont POST-HOC. Aucune n a ete ecrite avant
+  Donc les 13 hypotheses sont POST-HOC. Aucune n a ete ecrite avant
   d avoir vu ces donnees, et le registre le constate au lieu de le
   croire sur parole. Elles basculeront en PRE au plus tot le 2027-05-29,
   sans que rien ne soit reecrit : c est la seule facon pour ce fichier
@@ -125,12 +142,12 @@ PREENREGISTREE OU POST-HOC - calcule, pas declare
 
 BARRE DE SIGNIFICATIVITE CORRIGEE
 --------------------------------------------------------------------------
-  hypotheses enregistrees        : 11
-  comparaisons tentees ce run    : 11
-  comparaisons SCOREES (cumul)   : 8
+  hypotheses enregistrees        : 13
+  comparaisons tentees ce run    : 13
+  comparaisons SCOREES (cumul)   : 9
   dont sans empreinte de donnees : 6 (methode anterieure)
   alpha famille                  : 0.050
-  barre Bonferroni alpha/n       : 0.0050
+  barre Bonferroni alpha/n       : 0.0056
 
   Bonferroni parce que c est la seule correction recalculable a partir
   d un simple compteur, sans hypothese que ces donnees ne
@@ -144,7 +161,7 @@ BARRE DE SIGNIFICATIVITE CORRIGEE
      compteur est un PLANCHER de la famille reelle : une recherche non
      comptee n est corrigee par aucune arithmetique.
    - elle achete le taux de faux positifs en detruisant la puissance.
-     A famille 8, un signal reel mais modeste n a presque aucune
+     A famille 9, un signal reel mais modeste n a presque aucune
      chance de passer. C est le prix, paye parce que l alternative -
      aucun compteur - a deja produit un gradient dissous.
    - et elle ne corrige que ce qu elle peut IDENTIFIER. Jusqu a ce run
@@ -163,13 +180,15 @@ EMPREINTES DES DONNEES MESUREES
   H02   dominance ETH            eth_btc      419c6fa6343a   abe862d387de
   H03   niveau ETH/BTC           eth_btc      5a5f36680612   abe862d387de
   H04   Fear & Greed             eth_btc      8f1a8fd1f6e4   abe862d387de
-  H05   mvrv_z_score             eth_btc      b7932be755e0   abe862d387de
-  H06   nvt                      eth_btc      7afb3c82bb81   abe862d387de
-  H07   stablecoin_supply_ratio  eth_btc      1652c0eecd08   abe862d387de
+  H05   mvrv_z_score             eth_btc      5dfb189bc3ff   abe862d387de
+  H06   nvt                      eth_btc      6a68eb793d05   abe862d387de
+  H07   stablecoin_supply_ratio  eth_btc      a867dae78efb   abe862d387de
   H08   dominance BTC            alt_eth*     68ce5a925341   02129b3fe36c
   H09   dominance ETH            alt_eth*     419c6fa6343a   02129b3fe36c
   H10   Fear & Greed             alt_eth*     8f1a8fd1f6e4   02129b3fe36c
   H11   dominance BTC            alt_btc*     68ce5a925341   86213e9f1b27
+  H12   cible eth_btc elle-meme  eth_btc      abe862d387de   abe862d387de
+  H13   sth_realized_price       eth_btc      c472f7d05b91   abe862d387de
   sha256 tronque a 12 caracteres, sur la serie RESTREINTE effectivement
   parcourue. Tronque pour etre comparable a l oeil dans un rapport :
   c est un risque de collision accepte, et il ne protege de rien
@@ -182,13 +201,15 @@ MESURES - walk-forward, direction hors echantillon
   H02   dominance ETH            eth_btc      2710      0      0    11     3     33% -1 (1+/2-)   ?
   H03   niveau ETH/BTC           eth_btc      2710      0      0    11     5    100% -1 (0+/5-)   +1
   H04   Fear & Greed             eth_btc      2709      1    331    10     9     11% +1 (6+/3-)   ?
-  H05   mvrv_z_score             eth_btc      1369      3      0     3     1      0% +1 (1+/0-)   +1
-  H06   nvt                      eth_btc      1369      3      0     3     0       - ? (0+/0-)    -1
-  H07   stablecoin_supply_ratio  eth_btc      1369      3      0     3     0       - ? (0+/0-)    ?
+  H05   mvrv_z_score             eth_btc      1368      3      0     3     1      0% +1 (1+/0-)   +1
+  H06   nvt                      eth_btc      1368      3      0     3     0       - ? (0+/0-)    -1
+  H07   stablecoin_supply_ratio  eth_btc      1368      3      0     3     0       - ? (0+/0-)    ?
   H08   dominance BTC            alt_eth*     2710      0      0    11     1    100% +1 (1+/0-)   +1
   H09   dominance ETH            alt_eth*     2710      0      0    11     2    100% +1 (2+/0-)   -1
   H10   Fear & Greed             alt_eth*     2709      1    331    10     7     43% +1 (4+/3-)   -1
   H11   dominance BTC            alt_btc*     2710      0      0    11     4     75% +1 (3+/1-)   ?
+  H12   cible eth_btc elle-meme  eth_btc      2710      0      0    11    11    100% +1 (11+/0-)  +1
+  H13   sth_realized_price       eth_btc      1368      3      0     3     0       - ? (0+/0-)    -1
 
   trous = jours calendaires ABSENTS de la serie restreinte, entre sa
   premiere et sa derniere date. C est la mesure qui manquait sous
@@ -214,10 +235,12 @@ MESURES - walk-forward, direction hors echantillon
 LE MELANGE NE CONSERVE PAS LES PLIS - mesure, pas suppose
 --------------------------------------------------------------------------
   id    cible      mode      lances utilis. degen. plis obtenus   reels apparies base moyenne   moyenne  ecart
-  H03   eth_btc    melange      250     221     29 0..6 (med 2)       5       14 tous(221)          49%    +51
-  H03   eth_btc    decalage     250     239     11 0..7 (med 3)       5       25 apparies(25)       54%    +46
-  H04   eth_btc    melange      250     221     29 0..7 (med 2)       9        0 tous(221)          46%    -35
-  H04   eth_btc    decalage     250     250      0 2..9 (med 6)       9        4 tous(250)          55%    -43
+  H03   eth_btc    melange      250     227     23 0..8 (med 2)       5       13 tous(227)          48%    +52
+  H03   eth_btc    decalage     250     240     10 0..7 (med 3)       5       29 apparies(29)       52%    +48
+  H04   eth_btc    melange      250     224     26 0..6 (med 2)       9        0 tous(224)          50%    -39
+  H04   eth_btc    decalage     250     250      0 2..10 (med 6)      9        6 tous(250)          57%    -46
+  H12   eth_btc    melange      250     225     25 0..7 (med 2)      11        0 tous(225)          45%    +55
+  H12   eth_btc    decalage     250     250      0 1..9 (med 5)      11        0 tous(250)          54%    +46
 
   Absentes de ce tableau : les hypotheses a moins de 4 plis, et celles
   dont la cible est retiree (alt_btc*, alt_eth*).
@@ -252,6 +275,14 @@ LE MELANGE NE CONSERVE PAS LES PLIS - mesure, pas suppose
      comparaison valide n existe, et le verdict est SOUS_RESOLU, jamais
      REJETE. La colonne 'base du p' du tableau suivant dit, ligne par
      ligne, laquelle des deux a servi.
+   - chaque hypothese tire sa PROPRE suite de permutations : graine =
+     SEED + une empreinte sha256 stable de son identifiant. Avec une
+     seule random.Random(SEED) par appel, H03 et H04 consommaient la
+     meme suite, et leurs deux nulles etaient une seule experience
+     reetiquetee - la dependance entre membres de la famille que la
+     section BARRE discute pour les tests, remise sous les tests. Cela
+     n independise que les NULLES : les hypotheses partagent toujours la
+     meme cible, et rien ici ne les rend independantes entre elles.
    - a deux plis, un taux d accord ne peut valoir que 0, 50 ou 100 :
      une nulle a plis courts est grossiere autant qu elle est fausse.
    - le decalage circulaire garde l autocorrelation, donc les plis. Il
@@ -278,8 +309,9 @@ PLANCHER DE RESOLUTION
   design n avait aucune resolution, et le p a cote n est qu une
   description.
   id    cible       plis  apparies  plancher         p base du p     barre
-  H03   eth_btc        5        14    0.0667    0.2162 tous(221)     0.0050
-  H04   eth_btc        9         0    1.0000    0.6937 tous(221)     0.0050
+  H03   eth_btc        5        13    0.0714    0.1974 tous(227)     0.0056
+  H04   eth_btc        9         0    1.0000    0.7378 tous(224)     0.0056
+  H12   eth_btc       11         0    1.0000    0.2035 tous(225)     0.0056
   Avec 4 plis le plancher vaut deja 0.0625 : un walk-forward PARFAIT a
   4 plis ne peut pas atteindre 0.05, meme sans correction. Ces tests
   sortent SOUS_RESOLU : ils n ont pas echoue, ils ne pouvaient pas
@@ -337,8 +369,13 @@ VERDICTS
         univers invalide - l indice alt ne couvre aucun major de ce cycle (build_rotations.py, HEAD) - resultat retire, aucune statistique ne le rouvre
   H11   dominance BTC            alt_btc*   NON_TESTABLE  [POST]  [panier alt SANS SOL/SUI/HYPE - biais de construction]
         univers invalide - l indice alt ne couvre aucun major de ce cycle (build_rotations.py, HEAD) - resultat retire, aucune statistique ne le rouvre
+  H12   cible eth_btc elle-meme  eth_btc    SOUS_RESOLU   [POST]
+        0 melanges sur 250 atteignent les 11 plis reels (min 20 requis) - aucune comparaison valide n a pu etre construite
+        p plancher 1.0000 > barre 0.0056 - le test ne pouvait pas conclure, 11 plis / 0 melanges apparies
+  H13   sth_realized_price       eth_btc    NON_TESTABLE  [POST]
+        0 plis < 4 requis - non concluant
 
-  bilan : REJETE=2, NON_TESTABLE=9
+  bilan : REJETE=2, SOUS_RESOLU=1, NON_TESTABLE=10
 
 CE QUE LA PORTE EN A FAIT - lu dans dimensions.py, pas suppose
 --------------------------------------------------------------------------
@@ -349,57 +386,103 @@ CE QUE LA PORTE EN A FAIT - lu dans dimensions.py, pas suppose
     mvrv_z_score             tier A        ici : NON_TESTABLE (H05)
     nvt                      tier A        ici : NON_TESTABLE (H06)
     stablecoin_supply_ratio  tier A        ici : NON_TESTABLE (H07)
+    sth_realized_price       tier A        ici : NON_TESTABLE (H13)
   Les signaux de rotation (dominance, niveau ETH/BTC) n ont pas de
   cle dans la porte : ce sont des entrees de rotation, pas des
   signaux de porte, et leur en inventer une fabriquerait une
   correspondance.
 
-CONTRE QUOI LIRE UN ACCORD WALK-FORWARD - le controle de soi
+COUVERTURE DU TIER A - lue dans dimensions.py a l execution
 --------------------------------------------------------------------------
-  H03 a ete enregistree comme CONTROLE : "controle: le niveau se predit-il lui-meme".
-  Elle demande si le niveau ETH/BTC predit le niveau ETH/BTC, sur
-  la cible eth_btc. C est un predicteur DEGENERE : il ne peut rien
-  apporter, par construction. Les hypotheses de la meme cible,
-  cote a cote, avec le controle au milieu :
-    id    signal                     accord       plis verdict
-    H01   dominance BTC                100%       3/3   NON_TESTABLE
-    H02   dominance ETH                 33%       1/3   NON_TESTABLE
-    H03   niveau ETH/BTC               100%       5/5   REJETE   <-- controle
-    H04   Fear & Greed                  11%       1/9   REJETE
-    H05   mvrv_z_score                   0%       0/1   NON_TESTABLE
+  Une famille sous-comptee ne rend pas la barre prudente : elle la
+  rend TROP LACHE. Chaque comparaison oubliee est une remise sur le
+  p de toutes les autres. D ou ce compte, lu dans
+  dimensions.TIER_A_SIGNALS a l execution et jamais fige ici -
+  fear_greed a ete RETROGRADE en track apres que H04 et H10 ont ete
+  ecrites, et un compte en dur decrirait encore la porte d avant.
+    Tier A aujourd hui        : 8 signaux
+    juges par ce registre     : mvrv_z_score, nvt, stablecoin_supply_ratio, sth_realized_price
+    sans serie sur le disque  : alt_funding_rates, eth_btc_momentum, eth_etf_flows, exchange_netflows
+    serie presente, AUCUNE hypothese ecrite : aucun
+  Seule la derniere ligne est un defaut, et elle en portait un :
+  sth_realized_price est Tier A et compte 1455 jours lisibles
+  dans analysis/series.json ; il etait pourtant absent de
+  HYPOTHESES et de GATE_KEYS, sous un commentaire affirmant que
+  seuls les signaux presents des DEUX cotes y figuraient. H13 le
+  couvre desormais, direction ecrite avant mesure.
+    juges ici mais plus Tier A : fear_greed
+    suivis (track), lisibles, NON enregistres : puell_multiple
+  Cette derniere ligne est une DECISION, pas un oubli : un signal
+  track ne porte aucun vote, donc aucune regle en vigueur ne s
+  appuie sur lui, et l enregistrer ajouterait une comparaison a la
+  famille - donc resserrerait la barre de tous les signaux qui
+  votent - pour juger une regle que personne n applique. Si l un
+  d eux remonte en Tier A, la decision doit etre rouverte, et cette
+  ligne est ce qui le rappellera.
 
-  Accord du controle : 100% sur 5 plis. Aucune hypothese de ce
-  groupe ne fait mieux ; 1 l egalent (H01), aucune sur autant de
-  plis (aucune). Un predicteur degenere tient donc le haut du tableau.
+CONTRE QUOI LIRE UN ACCORD WALK-FORWARD - deux references distinctes
+--------------------------------------------------------------------------
+  H12 est le CONTROLE DEGENERE : son signal EST la cible - le
+  rendement forward 90j de eth_btc entre comme son propre indicateur
+  avance. Il ne peut rien apporter qu un walk-forward puisse
+  recompenser, et son accord est donc le PLAFOND de ce design, pas
+  un resultat. C est une mesure, la ou la version precedente de ce
+  rapport se contentait de nommer un controle.
+  H03 n est PAS ce controle, contrairement a ce qui etait ecrit
+  ici. Elle confronte le percentile glissant du NIVEAU ETH/BTC a
+  la direction du RENDEMENT forward 90j : une question de retour
+  a la moyenne, pas une identite. scripts/walkforward.py la
+  traite d ailleurs comme un candidat a part entiere -
+  analysis/walkforward.txt : niveau ETH/BTC 100% (4/4), melange
+  59%, ecart 41. Elle reste enregistree comme reference de
+  PERSISTANCE DE REGIME, ce qu elle mesure reellement.
+  Les hypotheses de la meme cible, cote a cote :
+    id    signal                       accord    plis   0.5**plis verdict
+    H01   dominance BTC                  100%    3/3       0.1250 NON_TESTABLE
+    H02   dominance ETH                   33%    1/3       0.1250 NON_TESTABLE
+    H03   niveau ETH/BTC                 100%    5/5       0.0312 REJETE   <-- persistance
+    H04   Fear & Greed                    11%    1/9       0.0020 REJETE
+    H05   mvrv_z_score                     0%    0/1       0.5000 NON_TESTABLE
+    H12   cible eth_btc elle-meme        100%   11/11      0.0005 SOUS_RESOLU   <-- controle degenere
+  0.5**plis = probabilite qu un accord PARFAIT sur CE nombre de plis
+  sorte a pile ou face. La colonne accord seule rangeait des taux
+  incomparables dans une meme colonne : 100% sur 3 plis vaut 0.1250,
+  100% sur 5 plis vaut 0.0312, et les deux s ecrivaient 100%. La
+  colonne chiffre l incomparabilite dans la ligne elle-meme, plutot
+  que de la laisser au lecteur.
+
+  Accord du controle degenere : 100% sur 11 plis, soit 0.0005 a pile
+  ou face.
+  L egalent : H01 sur 3 plis (0.1250), H03 sur 5 plis (0.0312).
+  Aucune ne l egale sur autant de plis : le haut du tableau est
+  tenu par un predicteur qui n apporte rien par construction.
   C est l inference que ce run publie, et elle va contre l intuition
   qu un accord de plis eleve vaut preuve :
    - la reference implicite d un accord walk-forward est 50%, deux
      directions coincidant a pile ou face. C est ce que dit le
      docstring de walkforward.py, et ce run montre que la reference
      est fausse dans ce design : un predicteur degenere y atteint
-     100% sur 5 plis.
-   - la raison est structurelle, pas statistique. Tout l echantillon
-     tient dans UNE SEULE tendance baissiere ETH/BTC. Une direction
-     de gradient qui ne change pas parce que le regime ne change
-     pas se reproduit d un pli au suivant sans qu aucune
-     information ne soit en jeu. L accord mesure alors la
-     persistance du regime, pas le contenu du signal.
-   - donc un accord doit se lire CONTRE LE CONTROLE, pas contre
-     50%. Aucun signal de ce groupe ne depasse H03, et le depasser
-     serait la seule facon de montrer qu il apporte autre chose que
-     cette persistance.
-   - et cela vaut d abord contre ce run lui-meme : les 2 accords
-     a 100% de ce groupe (H03, H01) ne sont pas 2 succes, ce sont un
-     controle degenere et 1 resultat(s) qui ne s en distinguent
-     pas.
-  Le biais 'un seul regime' figure aussi dans le bloc final. Il y
-  est une declaration ; ici il est chiffre par la mesure qui le
-  demontre. C est la difference entre avouer une limite et la
-  rendre lisible.
-  Ce que le controle ne dit PAS : il n annule pas les verdicts. H03
-  est lui-meme REJETE sur sa propre direction enregistree. Un controle
-  qui echoue au reste de la regle reste un etalon d accord, pas un
-  signal, et il n est jamais compte comme une reussite.
+     100% sur 11 plis.
+   - la seconde reference est la PERSISTANCE : tout l echantillon
+     tient dans UNE SEULE tendance baissiere ETH/BTC. Une
+     direction de gradient qui ne change pas parce que le regime
+     ne change pas se reproduit d un pli au suivant sans qu
+     aucune information ne soit en jeu. H03 la chiffre : 100% sur 5 plis.
+     Ce n est pas la meme quantite que le plafond degenere, et
+     les confondre est ce qui rendait la phrase precedente
+     fausse plutot que seulement imprecise.
+   - donc un accord se lit CONTRE CES DEUX REFERENCES, pas contre
+     50%. Depasser H12 serait la seule facon de montrer qu un signal
+     apporte autre chose que l arithmetique du design.
+   - et cela vaut d abord contre ce run lui-meme : les 3 accords
+     a 100% de ce groupe (H12, H01, H03) ne sont pas 3 succes, ce sont
+     un controle degenere et 2 resultats qui ne s en distinguent pas.
+  Ce que le controle ne dit PAS : il n annule aucun verdict. H12
+  est lui-meme SOUS_RESOLU, et un etalon d accord n est pas un
+  signal : il n est jamais compte comme une reussite. Il est en
+  revanche compte comme un TIRAGE dans la famille - la barre de
+  tous les autres se resserre de l avoir mesure, et c est le prix
+  de remplacer un controle nomme par un controle mesure.
 
 CE QUE CE RUN NE MONTRE PAS
 --------------------------------------------------------------------------
@@ -445,12 +528,15 @@ BIAIS A DECLARER, VALABLES POUR CHAQUE LIGNE CI-DESSUS
     ce qui rend le controle par melange indispensable et laisse le p
     optimiste malgre tout.
   - tout l echantillon tient dans une seule tendance baissiere ETH/BTC.
-    Ce biais n est pas seulement declare ici : il est MESURE par le
-    controle H03, qui atteint 100% d accord en predisant le niveau par
-    lui-meme. Voir la section CONTRE QUOI LIRE UN ACCORD WALK-FORWARD :
-    c est la que ce biais cesse d etre un aveu pour devenir un chiffre,
-    et c est ce chiffre - pas 50% - qui est la reference des accords
-    imprimes plus haut.
+    Ce biais n est pas seulement declare ici, il est MESURE : H03, la
+    reference de persistance, atteint 100% sur 5 plis en
+    confrontant le percentile du niveau ETH/BTC a la direction du
+    rendement forward ; le controle degenere H12, dont le signal EST
+    la cible, atteint 100% sur 11 plis.
+    Voir la section CONTRE QUOI LIRE UN ACCORD WALK-FORWARD : c est la
+    que ce biais cesse d etre un aveu pour devenir deux chiffres, et ce
+    sont eux - pas 50% - qui sont la reference des accords imprimes
+    plus haut.
   - dominance calculee sur un UNIVERS de 71 a 118 actifs selon le jour
     (et non un panier de cette taille : le panier alt est le top 15).
     Le niveau est donc biaise ; seuls les rangs sont utilisables.

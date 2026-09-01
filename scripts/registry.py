@@ -39,7 +39,17 @@ Every hypothesis measured today is POST-HOC. All of them. That is recorded.
 
 The multiplicity bar, its choice, and its weakness
 --------------------------------------------------
-The bar is Bonferroni: alpha / (number of distinct comparisons ever scored).
+The bar is Bonferroni: alpha divided by the number of distinct comparisons
+ever SCORED, where "scored" means exactly what adoption_verdict() marks as
+scored and nothing else. That sentence used to describe an intention rather
+than the code. main() built the denominator from every measurement reaching
+MIN_FOLDS, withdrawn targets included, so a run printed "comparaisons SCOREES
+: 8" and "barre Bonferroni alpha/n : 0.0050" on two adjacent lines - 0.05/10,
+against the 0.05/8 = 0.00625 its own page supported. A bar contradicting the
+count beside it is this module's subject matter turned on itself, so the
+denominator is now asked of the adoption rule directly, and a test reads both
+numbers back off the RENDERED report rather than out of a variable.
+
 It is chosen for one reason - it is the only correction that can be recomputed
 from a count alone, with no assumption the data would have to support. Its
 weaknesses are real and must be read alongside every verdict:
@@ -70,6 +80,17 @@ observations, and a scrambled series lands in that state constantly. Section
 "LE MELANGE NE CONSERVE PAS LES PLIS" of the report prints the fold
 distribution of every null next to the real fold count, so the mismatch is
 visible instead of asserted away.
+
+Each hypothesis draws its own permutation sequence. A single
+random.Random(SEED) per call handed H03 and H04 the identical stream of
+shuffles, so their two nulls were the SAME experiment relabelled and their
+p-values moved together - the dependence between family members that the
+Bonferroni section spends a paragraph on for the tests, reintroduced under the
+tests. The seed is now SEED plus a sha256 digest of the hypothesis id, not
+hash(), which is salted per process and would make the run unreproducible
+between two interpreters. It costs nothing and buys only independence between
+the nulls; it does NOT make the hypotheses themselves independent, since they
+still share the same target series.
 
 Two consequences are handled rather than mentioned:
   - a draw that yields zero folds produces no test at all. Those draws are
@@ -105,17 +126,29 @@ observation is not a mean.
 
 The reference the accords are read against
 -------------------------------------------
-H03 registers the ETH/BTC level as a predictor of the ETH/BTC level. It is a
-degenerate predictor and it wins: it takes the highest fold agreement of the
-run. That is not a curiosity, it is the calibration this design needed. The
-implicit reference for a walk-forward agreement is 50% - two directions
-coinciding by chance - and this run measures that the implicit reference is
-wrong here, because the whole sample sits inside one ETH/BTC downtrend and a
-gradient direction that never changes reproduces itself fold after fold with
-no information in play. So agreement is read against the self-prediction
-control, never against 50%. An earlier version measured that control and never
-drew the conclusion from it, which was the most useful thing this run had to
-publish.
+The implicit reference for a walk-forward agreement is 50% - two directions
+coinciding by chance. This run measures that the implicit reference is wrong
+in this design, and it measures it with a predictor that is degenerate by
+CONSTRUCTION rather than one that was merely called degenerate.
+
+H12 is that predictor: its signal IS the target, the 90-day forward return of
+eth_btc entered as its own leading indicator. It carries no information a
+walk-forward could reward and it takes the top of the table anyway, on more
+folds than any real signal produces. That number, not 50%, is the ceiling an
+agreement has to be read against.
+
+H03 was doing that job before and could not: it is the rolling percentile of
+the ETH/BTC LEVEL against the direction of the 90-day FORWARD RETURN, which is
+a mean-reversion question and not an identity. An earlier version of this file
+called it "a degenerate predictor" that "can contribute nothing by
+construction" - which is false, and scripts/walkforward.py disagrees with it in
+print: analysis/walkforward.txt scores "niveau ETH/BTC 100% (4/4)" as a
+candidate among candidates. H03 stays registered, renamed for what it measures:
+a persistence-of-regime reference. The whole sample sits inside one ETH/BTC
+downtrend, so a gradient direction that never changes reproduces itself fold
+after fold with no information in play, and H03 prices that. Two different
+references, measured separately, because merging them is what made the earlier
+claim wrong.
 
 The resolution floor: tests that could never have succeeded
 ------------------------------------------------------------
@@ -162,11 +195,12 @@ can currently issue for anything measured today is "post-hoc candidate".
 
 What it costs to run
 --------------------
-Minutes, not seconds: SHUFFLES draws per null mode per scored hypothesis, each
-draw a full walk. The measured wall time and the realised draw count are
-printed in the report header of every run rather than quoted here, so the
-figure cannot go stale. Raising SHUFFLES buys resolution linearly in runtime
-and buys nothing against the fold-count floor.
+SHUFFLES draws per null mode per scored hypothesis, each draw a full walk. No
+figure is quoted here on purpose: the measured wall time and the realised draw
+count are printed in the report header of EVERY run, so they cannot go stale,
+and this line previously asserted a duration in minutes above a report
+printing this run's wall time, in seconds, on the same page. Raising SHUFFLES buys resolution
+linearly in runtime and buys nothing against the fold-count floor.
 
 Run: python scripts/registry.py
 """
@@ -460,12 +494,21 @@ def record_result(reg, hyp_id, result, evaluated_on):
 
 
 def family_size(reg):
-    """Only SCORED comparisons enter the bar.
+    """How many distinct comparisons have ever been SCORED. This is the bar.
 
-    A test that never reached MIN_FOLDS produced no p-value and so could not
-    have produced a false positive. The opposite convention is defensible -
-    the decision to attempt it was still part of the search - and it would
-    make the bar stricter. The report prints both counts so that the choice is
+    Two exclusions, and both used to be described here while only one was
+    implemented. A test that never reached MIN_FOLDS produced no p-value and so
+    could not have produced a false positive. A test on a WITHDRAWN target is
+    refused before any statistic is read, produces no p-value either, and never
+    reaches reg["comparisons"] - but the bar was computed from a separate count
+    that admitted it, which is how one run printed 8 comparisons over a bar of
+    0.05/10. provisional_family() now asks adoption_verdict() instead of
+    re-deriving the condition, so this function and the bar cannot describe
+    different sets.
+
+    The opposite convention is defensible - the decision to attempt a test was
+    still part of the search - and it would make the bar stricter. The report
+    prints the attempted count next to the scored one so that the choice is
     visible and arguable rather than buried in here.
     """
     return len(reg["comparisons"])
@@ -502,6 +545,24 @@ def resolution_floor(folds, matched):
     test pins the two apart on real numbers as well.
     """
     return max(0.5 ** folds, 1.0 / (matched + 1))
+
+
+def null_seed(base_seed, hyp_id):
+    """A distinct, reproducible permutation stream per hypothesis.
+
+    random.Random(SEED) at every call handed H03 and H04 the identical sequence
+    of shuffles: two nulls of one family that were the same experiment
+    relabelled, so their p-values moved together. That is the dependence the
+    Bonferroni section discusses for the tests, reintroduced underneath them.
+
+    sha256 rather than hash(): hash() of a str is salted per process, so the
+    same run in two interpreters would draw two different nulls and neither
+    could be reproduced from the file. This buys independence between the
+    NULLS only - the hypotheses still share one target series, and nothing here
+    makes them independent of each other.
+    """
+    digest = hashlib.sha256(hyp_id.encode("utf-8")).hexdigest()[:8]
+    return base_seed + int(digest, 16)
 
 
 def effective_threshold(success_threshold):
@@ -624,6 +685,30 @@ def adoption_verdict(entry, measurement, bar):
                       measurement["null_matched"]))
     out["verdict"] = "ADOPTE"
     return out
+
+
+def provisional_family(reg, measurements):
+    """The denominator of the bar: everything ever scored, plus this run's.
+
+    Asked of adoption_verdict() rather than re-derived from a fold count. The
+    re-derived version admitted every measurement reaching MIN_FOLDS, so the
+    withdrawn targets that clear it - measured, refused before any statistic,
+    never recorded as comparisons - entered the denominator and nothing else.
+    That is how a report printed "comparaisons SCOREES : 8" directly above
+    "barre Bonferroni alpha/n : 0.0050", which is 0.05/10.
+
+    The bar handed in is a placeholder: `scored` is decided before any bar is
+    read, and passing one is what lets this ask the rule instead of keeping a
+    second copy of it that can drift.
+    """
+    keys = set(reg["comparisons"])
+    for hyp_id, m in measurements.items():
+        entry = find(reg, hyp_id)
+        if m is None or entry is None:
+            continue
+        if adoption_verdict(entry, m, FAMILY_ALPHA)["scored"]:
+            keys.add(m["comparison_key"])
+    return keys
 
 
 # --- measurement -----------------------------------------------------------
@@ -854,12 +939,15 @@ def measure(entry, series, fwd, data_end, shuffles=SHUFFLES, seed=SEED):
         # before reading any statistic, so drawing 500 nulls for it would buy
         # a p-value the rule is forbidden to look at. The walk itself is still
         # run and recorded - what was asked, and what came back, stays in the
-        # file - only the nulls are skipped. In this run that is 1000 of 3000
-        # draws and rather more than half the wall time.
+        # file - only the nulls are skipped. What the withdrawal saves is
+        # COUNTED against the counterfactual of an empty WITHDRAWN_TARGETS and
+        # printed in the report's CIBLES RETIREES section. A draw count frozen
+        # in this comment is one no run ever recomputes, and the frozen one was
+        # wrong in both halves of its arithmetic by the time it was read.
         return m
 
     real = agree / folds * 100
-    rng = random.Random(seed)
+    rng = random.Random(null_seed(seed, entry["id"]))
     for mode in NULL_MODES:
         m["nulls"][mode] = summarise_null(
             null_draws(restricted, fwd, rng, mode, shuffles), folds, real)
@@ -901,14 +989,33 @@ def measure(entry, series, fwd, data_end, shuffles=SHUFFLES, seed=SEED):
 
 TODAY = "2026-09-01"
 
-# H03 asks whether the ETH/BTC level predicts the ETH/BTC level. It is not a
-# hypothesis, it is the ruler: whatever fold agreement a DEGENERATE predictor
-# reaches in this design is the number every real signal has to be read
-# against. Named as a constant because the report's control section must not
-# be able to point at a different id than the one that was registered as the
-# control, and because a control that only a rationale string identifies is a
-# control nobody can find.
-CONTROL_ID = "H03"
+# The degenerate control. Its signal IS its target - the 90-day forward return
+# of eth_btc entered as its own leading indicator - so it carries no
+# information a walk-forward could reward, and whatever agreement it reaches is
+# the ceiling of this design rather than a result.
+#
+# It replaces an ARGUMENT with a MEASUREMENT. H03 held this role and could not:
+# it maps the rolling percentile of the ETH/BTC LEVEL onto the direction of the
+# 90-day FORWARD RETURN, which is a mean-reversion question, not an identity.
+# The report called it "degenere - il ne peut rien apporter, par construction",
+# while scripts/walkforward.py scores the same measure as a candidate among
+# candidates (analysis/walkforward.txt: "niveau ETH/BTC 100% (4/4)"). Naming a
+# control does not make it one; this one is degenerate in a way a reader can
+# check in a single line.
+#
+# The cost is paid in the open: H12 clears MIN_FOLDS, so it is SCORED, it
+# enters the family counter, and it tightens the bar on every other hypothesis.
+# An instrument that measures the design is still a draw.
+CONTROL_ID = "H12"
+DEGENERATE_SIGNAL = "cible eth_btc elle-meme"
+
+# H03, kept and renamed for what it actually measures. The whole sample sits
+# inside one ETH/BTC downtrend, so a gradient direction that never changes
+# reproduces itself fold after fold with no information in play. That is a
+# persistence-of-regime reference, and it is a different quantity from the
+# degenerate ceiling above - which is why merging the two made the old claim
+# false rather than merely loose.
+PERSISTENCE_ID = "H03"
 
 # Every one of these was written down AFTER the study that suggested it. The
 # registry will stamp them POST and it will be right. They are entered anyway
@@ -920,7 +1027,9 @@ HYPOTHESES = [
     ("H02", "dominance ETH", "eth_btc", 1, 0.70,
      "walkforward: accord eleve, constate apres coup"),
     ("H03", "niveau ETH/BTC", "eth_btc", 1, 0.70,
-     "controle: le niveau se predit-il lui-meme"),
+     "reference de persistance de regime: percentile du NIVEAU ETH/BTC contre "
+     "la direction du RENDEMENT forward 90j - question de retour a la "
+     "moyenne, pas une identite"),
     ("H04", "Fear & Greed", "eth_btc", 1, 0.70,
      "regle Tier A en vigueur: la cupidite precederait la rotation"),
     ("H05", "mvrv_z_score", "eth_btc", 1, 0.70, "regle Tier A en vigueur"),
@@ -933,17 +1042,34 @@ HYPOTHESES = [
     ("H10", "Fear & Greed", "alt_eth", 1, 0.70, "regle Tier A, cible alt"),
     ("H11", "dominance BTC", "alt_btc", 1, 0.70,
      "meme sens attendu que sur eth_btc"),
+    ("H12", DEGENERATE_SIGNAL, "eth_btc", 1, 0.70,
+     "controle degenere: le signal EST la cible, donc accord maximal par "
+     "construction et aucune information apportee - etalon d accord"),
+    ("H13", "sth_realized_price", "eth_btc", 1, 0.70,
+     "regle Tier A en vigueur (SEMANTIC=rotation): base de cout STH haute = "
+     "cycle avance, donc rotation vers ETH - direction ecrite avant mesure"),
 ]
 
 
-# The gate's own name for each signal this registry judges. Only the four that
-# exist on both sides are here; dominance and the ETH/BTC level are rotation
-# inputs, not gate signals, and inventing keys for them would fabricate a
-# correspondence.
+# The gate's own name for each signal this registry judges.
+#
+# This said "only the four that exist on both sides", and that was false about
+# sth_realized_price: Tier A in dimensions.SIGNAL_REGISTRY, present in
+# analysis/series.json, and absent from both HYPOTHESES and this map. The
+# omission runs the wrong way for a module whose thesis is counting draws - a
+# family member that is never counted makes the bar TOO LOOSE for everyone
+# else, so this was not a gap in coverage, it was a discount on every p-value
+# in the report.
+#
+# Dominance, the ETH/BTC level and the degenerate control have no key here:
+# they are rotation inputs and instruments, not gate signals, and inventing
+# keys for them would fabricate a correspondence. puell_multiple is a
+# deliberate absence, decided and argued at TRACKED_NOT_REGISTERED.
 GATE_KEYS = {"Fear & Greed": "fear_greed",
              "mvrv_z_score": "mvrv_z_score",
              "nvt": "nvt",
-             "stablecoin_supply_ratio": "stablecoin_supply_ratio"}
+             "stablecoin_supply_ratio": "stablecoin_supply_ratio",
+             "sth_realized_price": "sth_realized_price"}
 
 
 def downstream_tiers():
@@ -967,6 +1093,48 @@ def downstream_tiers():
         spec = dimensions.SIGNAL_REGISTRY.get(key)
         out[label] = spec[1] if spec else None
     return out
+
+
+# puell_multiple: DECIDED in writing rather than left as an oversight. It is
+# readable in analysis/series.json and it sits in tier "track" in
+# dimensions.SIGNAL_REGISTRY - it carries no vote, so no rule in force rests on
+# it. Registering a hypothesis for it would add a comparison to the family, and
+# so tighten the bar on every signal that IS voted on, in order to judge a rule
+# nobody applies. It is left unregistered on purpose. If it is ever promoted to
+# Tier A that decision has to be reopened, and tier_a_coverage() is what puts it
+# back in front of a reader: it prints the tracked series it can see.
+TRACKED_NOT_REGISTERED = ("puell_multiple",)
+
+
+def tier_a_coverage(available):
+    """Which Tier A signals this registry has a written hypothesis for.
+
+    dimensions.TIER_A_SIGNALS is read at RUN TIME, never restated here.
+    fear_greed was demoted out of Tier A after H04 and H10 were written, and a
+    membership list frozen in this file would still be describing the gate as
+    it stood on the day it was copied.
+
+    `unregistered` is the field that matters: a Tier A signal whose series is on
+    disk and which no hypothesis covers is an UNCOUNTED family member, and an
+    uncounted family member is a bar too loose for everybody else. An empty list
+    there is a claim the report makes; a non-empty one is a defect it has to
+    print.
+    """
+    try:
+        import dimensions
+    except Exception:
+        return None
+    judged = set(GATE_KEYS.values())
+    tier_a = sorted(dimensions.TIER_A_SIGNALS)
+    return {"tier_a": tier_a,
+            "judged": [k for k in tier_a if k in judged],
+            "unregistered": [k for k in tier_a
+                             if k not in judged and k in available],
+            "no_series": [k for k in tier_a
+                          if k not in judged and k not in available],
+            "judged_not_tier_a": sorted(k for k in judged if k not in tier_a),
+            "tracked_not_registered": [k for k in TRACKED_NOT_REGISTERED
+                                       if k in available]}
 
 
 def by_hyp_id(hyp_id):
@@ -1186,10 +1354,18 @@ def build_inputs():
                "dominance ETH": {d: v["eth_dom"] for d, v in dom.items()},
                "niveau ETH/BTC": dict(rot["eth_btc"]),
                "Fear & Greed": load_fear_greed_offline()}
-    for name in ("mvrv_z_score", "stablecoin_supply_ratio", "nvt"):
-        if name in series:
-            signals[name] = series[name]
+    # Driven by HYPOTHESES rather than by a third hand-kept list. The list
+    # here read ("mvrv_z_score", "stablecoin_supply_ratio", "nvt") while
+    # analysis/series.json also held sth_realized_price, so a hypothesis about
+    # it could not have been measured even once it was written down.
+    for name in sorted(set(series) & {h[1] for h in HYPOTHESES}):
+        signals[name] = series[name]
     targets = {k: fs.forward_map(rot[k], HORIZON) for k in rot}
+    # The degenerate control is CONSTRUCTED, not loaded: the target entered as
+    # its own predictor. Built from targets[] rather than re-derived from
+    # rot[], because a control that is only nearly the target measures
+    # something nobody can name.
+    signals[DEGENERATE_SIGNAL] = dict(targets["eth_btc"])
     # The earliest common end date, so that no hypothesis is judged
     # pre-registered merely because its target series stops sooner.
     data_end = min(max(rot[k]) for k in rot)
@@ -1197,6 +1373,8 @@ def build_inputs():
     context = {"basket": basket_span(dom),
                "absent_majors": absent_majors(),
                "gate_tiers": downstream_tiers(),
+               "tier_a": tier_a_coverage(set(series)),
+               "sth_days": len(series.get("sth_realized_price", {})),
                "divergence": target_divergence(rot["eth_btc"], ethbtc),
                "fng_sources": fng_source_divergence(
                    signals["Fear & Greed"],
@@ -1237,6 +1415,30 @@ def tmark(target):
     return target + (ALT_MARK if target.startswith("alt") else "")
 
 
+def _hyp_label(hyp_id):
+    """An id never printed away from the mark its target carries.
+
+    A line naming H08 and H09 without the alt mark is a line that can be
+    quoted on its own with the construction bias left behind, which is the
+    thing the mark exists to prevent.
+    """
+    h = by_hyp_id(hyp_id)
+    return "%s %s" % (hyp_id, tmark(h[2])) if h else hyp_id
+
+
+def _fmt_accord(measurements, hyp_id):
+    """An agreement rate never printed without the fold count under it.
+
+    100% on three folds and 100% on five are two different measurements and
+    they were being written the same way. Anywhere a rate leaves its table,
+    the denominator goes with it.
+    """
+    m = measurements.get(hyp_id)
+    if not m or m.get("agreement") is None:
+        return "-"
+    return "%.0f%% sur %d plis" % (m["agreement"] * 100, m["folds"])
+
+
 def _fmt_dir(d, votes=None):
     if d is None:
         base = "?"
@@ -1274,12 +1476,27 @@ def main():
     ctx["total_draws"] = sum(
         len(NULL_MODES) * m["shuffles"]
         for m in measurements.values() if m)
+    # What the withdrawal rule actually saved, computed rather than asserted:
+    # the draws this run WOULD have paid for if WITHDRAWN_TARGETS were empty.
+    # Only the fold count would then stand between a hypothesis and its nulls,
+    # so the two withdrawn targets that clear MIN_FOLDS are the whole of the
+    # saving - and the ones that never reached it were never saved by the
+    # withdrawal at all, which is the half of the story a figure frozen in a
+    # comment got wrong.
+    ctx["draws_no_withdrawal"] = sum(
+        len(NULL_MODES) * SHUFFLES
+        for m in measurements.values()
+        if m and (m["folds"] or 0) >= MIN_FOLDS)
+    ctx["withdrawn_costly"] = sorted(
+        hid for hid, m in measurements.items()
+        if m and (m["folds"] or 0) >= MIN_FOLDS
+        and find(reg, hid)["target"] in WITHDRAWN_TARGETS)
+    ctx["withdrawn_already_short"] = sorted(
+        hid for hid, m in measurements.items()
+        if m and (m["folds"] or 0) < MIN_FOLDS
+        and find(reg, hid)["target"] in WITHDRAWN_TARGETS)
 
-    provisional = set(reg["comparisons"])
-    for m in measurements.values():
-        if m and (m["folds"] or 0) >= MIN_FOLDS:
-            provisional.add(m["comparison_key"])
-    bar = bonferroni_bar(len(provisional))
+    bar = bonferroni_bar(len(provisional_family(reg, measurements)))
 
     verdicts = {}
     for hid, sig, tgt, _, _, _ in HYPOTHESES:
@@ -1446,6 +1663,34 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
     o("  Elles restent enregistrees et mesurees : ce fichier n efface rien, et")
     o("  une hypothese retiree qui disparait ne laisse aucune trace d avoir")
     o("  ete posee - l oubli exact que le registre existe pour empecher.")
+    cf = ctx.get("draws_no_withdrawal")
+    if cf is not None:
+        done = ctx.get("total_draws", 0)
+        costly = ctx.get("withdrawn_costly") or []
+        already = ctx.get("withdrawn_already_short") or []
+        o("  Ce que le retrait EPARGNE, contrefactuel calcule dans ce run et")
+        o("  non plus fige dans un commentaire :")
+        o("    tirages de nulle reellement effectues     : %d" % done)
+        o("    tirages si WITHDRAWN_TARGETS etait vide   : %d" % cf)
+        o("    epargnes par le retrait                   : %d%s"
+          % (cf - done,
+             ("  (%.0f%% du contrefactuel)" % ((cf - done) / cf * 100))
+             if cf else ""))
+        o("  Le contrefactuel ne retire QUE la regle de retrait : le plancher")
+        o("  de %d plis resterait en place." % MIN_FOLDS)
+        if costly:
+            o("  Les hypotheses retirees qui atteignent ce plancher, et qui")
+            o("  portent donc toute l economie mesuree ci-dessus :")
+            o("    %s" % ", ".join(_hyp_label(h) for h in costly))
+        else:
+            o("  Aucune cible retiree n atteint ce plancher : le retrait n")
+            o("  epargne aucun tirage dans ce run.")
+        if already:
+            o("  N ont jamais rien coute au retrait :")
+            o("    %s" % ", ".join(_hyp_label(h) for h in already))
+            o("  le plancher de plis les excluait deja, et les compter comme")
+            o("  epargnees serait s attribuer une economie qu une autre regle")
+            o("  avait deja faite.")
     o("  Reste mesurable sur donnees gratuites : eth_btc, une seule jambe.")
     o("")
     o("POURQUOI CE FICHIER EXISTE")
@@ -1658,6 +1903,14 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
     o("     comparaison valide n existe, et le verdict est SOUS_RESOLU, jamais")
     o("     REJETE. La colonne 'base du p' du tableau suivant dit, ligne par")
     o("     ligne, laquelle des deux a servi.")
+    o("   - chaque hypothese tire sa PROPRE suite de permutations : graine =")
+    o("     SEED + une empreinte sha256 stable de son identifiant. Avec une")
+    o("     seule random.Random(SEED) par appel, H03 et H04 consommaient la")
+    o("     meme suite, et leurs deux nulles etaient une seule experience")
+    o("     reetiquetee - la dependance entre membres de la famille que la")
+    o("     section BARRE discute pour les tests, remise sous les tests. Cela")
+    o("     n independise que les NULLES : les hypotheses partagent toujours la")
+    o("     meme cible, et rien ici ne les rend independantes entre elles.")
     o("   - a deux plis, un taux d accord ne peut valoir que 0, 50 ou 100 :")
     o("     une nulle a plis courts est grossiere autant qu elle est fausse.")
     o("   - le decalage circulaire garde l autocorrelation, donc les plis. Il")
@@ -1769,44 +2022,123 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
         o("  signaux de porte, et leur en inventer une fabriquerait une")
         o("  correspondance.")
         o("")
-    o("CONTRE QUOI LIRE UN ACCORD WALK-FORWARD - le controle de soi")
+    cov = ctx.get("tier_a")
+    if cov:
+        o("COUVERTURE DU TIER A - lue dans dimensions.py a l execution")
+        o("-" * 74)
+        o("  Une famille sous-comptee ne rend pas la barre prudente : elle la")
+        o("  rend TROP LACHE. Chaque comparaison oubliee est une remise sur le")
+        o("  p de toutes les autres. D ou ce compte, lu dans")
+        o("  dimensions.TIER_A_SIGNALS a l execution et jamais fige ici -")
+        o("  fear_greed a ete RETROGRADE en track apres que H04 et H10 ont ete")
+        o("  ecrites, et un compte en dur decrirait encore la porte d avant.")
+        o("    Tier A aujourd hui        : %d signaux" % len(cov["tier_a"]))
+        o("    juges par ce registre     : %s"
+          % (", ".join(cov["judged"]) if cov["judged"] else "aucun"))
+        o("    sans serie sur le disque  : %s"
+          % (", ".join(cov["no_series"]) if cov["no_series"] else "aucun"))
+        o("    serie presente, AUCUNE hypothese ecrite : %s"
+          % (", ".join(cov["unregistered"]) if cov["unregistered"]
+             else "aucun"))
+        n_sth = ctx.get("sth_days")
+        o("  Seule la derniere ligne est un defaut, et elle en portait un :")
+        if n_sth:
+            o("  sth_realized_price est Tier A et compte %d jours lisibles"
+              % n_sth)
+            o("  dans analysis/series.json ; il etait pourtant absent de")
+        else:
+            o("  sth_realized_price est Tier A ; il etait absent de")
+        o("  HYPOTHESES et de GATE_KEYS, sous un commentaire affirmant que")
+        o("  seuls les signaux presents des DEUX cotes y figuraient. H13 le")
+        o("  couvre desormais, direction ecrite avant mesure.")
+        o("    juges ici mais plus Tier A : %s"
+          % (", ".join(cov["judged_not_tier_a"])
+             if cov["judged_not_tier_a"] else "aucun"))
+        o("    suivis (track), lisibles, NON enregistres : %s"
+          % (", ".join(cov["tracked_not_registered"])
+             if cov["tracked_not_registered"] else "aucun"))
+        o("  Cette derniere ligne est une DECISION, pas un oubli : un signal")
+        o("  track ne porte aucun vote, donc aucune regle en vigueur ne s")
+        o("  appuie sur lui, et l enregistrer ajouterait une comparaison a la")
+        o("  famille - donc resserrerait la barre de tous les signaux qui")
+        o("  votent - pour juger une regle que personne n applique. Si l un")
+        o("  d eux remonte en Tier A, la decision doit etre rouverte, et cette")
+        o("  ligne est ce qui le rappellera.")
+        o("")
+    o("CONTRE QUOI LIRE UN ACCORD WALK-FORWARD - deux references distinctes")
     o("-" * 74)
     ctrl = measurements.get(CONTROL_ID)
     ctrl_h = by_hyp_id(CONTROL_ID)
+    pers, pers_h = measurements.get(PERSISTENCE_ID), by_hyp_id(PERSISTENCE_ID)
     if ctrl and ctrl["folds"] and ctrl_h:
         ctrl_tgt = ctrl_h[2]
-        o("  %s a ete enregistree comme CONTROLE : \"%s\"."
-          % (CONTROL_ID, ctrl_h[5]))
-        o("  Elle demande si le niveau ETH/BTC predit le niveau ETH/BTC, sur")
-        o("  la cible %s. C est un predicteur DEGENERE : il ne peut rien"
-          % tmark(ctrl_tgt))
-        o("  apporter, par construction. Les hypotheses de la meme cible,")
-        o("  cote a cote, avec le controle au milieu :")
-        o("    %-5s %-24s %8s %10s %s"
-          % ("id", "signal", "accord", "plis", "verdict"))
+        o("  %s est le CONTROLE DEGENERE : son signal EST la cible - le"
+          % CONTROL_ID)
+        o("  rendement forward %dj de %s entre comme son propre indicateur"
+          % (HORIZON, tmark(ctrl_tgt)))
+        o("  avance. Il ne peut rien apporter qu un walk-forward puisse")
+        o("  recompenser, et son accord est donc le PLAFOND de ce design, pas")
+        o("  un resultat. C est une mesure, la ou la version precedente de ce")
+        o("  rapport se contentait de nommer un controle.")
+        if pers_h:
+            o("  %s n est PAS ce controle, contrairement a ce qui etait ecrit"
+              % PERSISTENCE_ID)
+            o("  ici. Elle confronte le percentile glissant du NIVEAU ETH/BTC a")
+            o("  la direction du RENDEMENT forward %dj : une question de retour"
+              % HORIZON)
+            o("  a la moyenne, pas une identite. scripts/walkforward.py la")
+            o("  traite d ailleurs comme un candidat a part entiere -")
+            o("  analysis/walkforward.txt : niveau ETH/BTC 100% (4/4), melange")
+            o("  59%, ecart 41. Elle reste enregistree comme reference de")
+            o("  PERSISTANCE DE REGIME, ce qu elle mesure reellement.")
+        o("  Les hypotheses de la meme cible, cote a cote :")
+        o("    %-5s %-26s %8s %7s %11s %s"
+          % ("id", "signal", "accord", "plis", "0.5**plis", "verdict"))
         peers = [(h, measurements.get(h[0])) for h in HYPOTHESES
                  if h[2] == ctrl_tgt and measurements.get(h[0])
                  and measurements[h[0]]["folds"]]
         for h, m in peers:
-            o("    %-5s %-24s %7.0f%% %7d/%-3d %s%s"
+            if h[0] == CONTROL_ID:
+                role = "   <-- controle degenere"
+            elif h[0] == PERSISTENCE_ID:
+                role = "   <-- persistance"
+            else:
+                role = ""
+            o("    %-5s %-26s %7.0f%% %4d/%-2d %11.4f %s%s"
               % (h[0], h[1], m["agreement"] * 100, m["agree"], m["folds"],
-                 verdicts[h[0]]["verdict"],
-                 "   <-- controle" if h[0] == CONTROL_ID else ""))
+                 0.5 ** m["folds"], verdicts[h[0]]["verdict"], role))
+        o("  0.5**plis = probabilite qu un accord PARFAIT sur CE nombre de plis")
+        o("  sorte a pile ou face. La colonne accord seule rangeait des taux")
+        o("  incomparables dans une meme colonne : 100% sur 3 plis vaut 0.1250,")
+        o("  100% sur 5 plis vaut 0.0312, et les deux s ecrivaient 100%. La")
+        o("  colonne chiffre l incomparabilite dans la ligne elle-meme, plutot")
+        o("  que de la laisser au lecteur.")
         # Computed, not asserted. "The control wins" is the kind of sentence
         # that stays in a report after the numbers move under it; a tie or a
-        # defeat has to be able to print itself.
+        # defeat has to be able to print itself, and so does an empty list -
+        # this block used to render "aucune sur autant de plis (aucune)".
         best = max(m["agreement"] for _, m in peers)
-        ties = [h[0] for h, m in peers
+        ties = [(h[0], m["folds"]) for h, m in peers
                 if m["agreement"] >= best and h[0] != CONTROL_ID]
         deeper = [h[0] for h, m in peers
                   if m["agreement"] >= best and m["folds"] > ctrl["folds"]]
         o("")
-        o("  Accord du controle : %.0f%% sur %d plis. Aucune hypothese de ce"
-          % (ctrl["agreement"] * 100, ctrl["folds"]))
-        o("  groupe ne fait mieux ; %d l egalent (%s), aucune sur autant de"
-          % (len(ties), ", ".join(ties) if ties else "aucune"))
-        o("  plis (%s). Un predicteur degenere tient donc le haut du tableau."
-          % (", ".join(deeper) if deeper else "aucune"))
+        o("  Accord du controle degenere : %.0f%% sur %d plis, soit %.4f a pile"
+          % (ctrl["agreement"] * 100, ctrl["folds"], 0.5 ** ctrl["folds"]))
+        o("  ou face.")
+        if ties:
+            o("  L egalent : %s."
+              % ", ".join("%s sur %d plis (%.4f)" % (hid, f, 0.5 ** f)
+                          for hid, f in ties))
+        else:
+            o("  Aucune autre hypothese de ce groupe ne l egale.")
+        if deeper:
+            o("  Et sur PLUS de plis que lui : %s. Le plafond n est donc pas"
+              % ", ".join(deeper))
+            o("  tenu par le controle dans ce run.")
+        else:
+            o("  Aucune ne l egale sur autant de plis : le haut du tableau est")
+            o("  tenu par un predicteur qui n apporte rien par construction.")
         o("  C est l inference que ce run publie, et elle va contre l intuition")
         o("  qu un accord de plis eleve vaut preuve :")
         o("   - la reference implicite d un accord walk-forward est 50%, deux")
@@ -1814,34 +2146,41 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
         o("     docstring de walkforward.py, et ce run montre que la reference")
         o("     est fausse dans ce design : un predicteur degenere y atteint")
         o("     %.0f%% sur %d plis." % (ctrl["agreement"] * 100, ctrl["folds"]))
-        o("   - la raison est structurelle, pas statistique. Tout l echantillon")
-        o("     tient dans UNE SEULE tendance baissiere ETH/BTC. Une direction")
-        o("     de gradient qui ne change pas parce que le regime ne change")
-        o("     pas se reproduit d un pli au suivant sans qu aucune")
-        o("     information ne soit en jeu. L accord mesure alors la")
-        o("     persistance du regime, pas le contenu du signal.")
-        o("   - donc un accord doit se lire CONTRE LE CONTROLE, pas contre")
-        o("     50%%. Aucun signal de ce groupe ne depasse %s, et le depasser"
+        if pers and pers["folds"]:
+            o("   - la seconde reference est la PERSISTANCE : tout l echantillon")
+            o("     tient dans UNE SEULE tendance baissiere ETH/BTC. Une")
+            o("     direction de gradient qui ne change pas parce que le regime")
+            o("     ne change pas se reproduit d un pli au suivant sans qu")
+            o("     aucune information ne soit en jeu. %s la chiffre : %s."
+              % (PERSISTENCE_ID, _fmt_accord(measurements, PERSISTENCE_ID)))
+            o("     Ce n est pas la meme quantite que le plafond degenere, et")
+            o("     les confondre est ce qui rendait la phrase precedente")
+            o("     fausse plutot que seulement imprecise.")
+        o("   - donc un accord se lit CONTRE CES DEUX REFERENCES, pas contre")
+        o("     50%%. Depasser %s serait la seule facon de montrer qu un signal"
           % CONTROL_ID)
-        o("     serait la seule facon de montrer qu il apporte autre chose que")
-        o("     cette persistance.")
-        o("   - et cela vaut d abord contre ce run lui-meme : les %d accords"
-          % (1 + len(ties)))
-        o("     a %.0f%% de ce groupe (%s) ne sont pas %d succes, ce sont un"
-          % (best * 100, ", ".join([CONTROL_ID] + ties), 1 + len(ties)))
-        o("     controle degenere et %d resultat(s) qui ne s en distinguent"
-          % len(ties))
-        o("     pas.")
-        o("  Le biais 'un seul regime' figure aussi dans le bloc final. Il y")
-        o("  est une declaration ; ici il est chiffre par la mesure qui le")
-        o("  demontre. C est la difference entre avouer une limite et la")
-        o("  rendre lisible.")
-        o("  Ce que le controle ne dit PAS : il n annule pas les verdicts. %s"
+        o("     apporte autre chose que l arithmetique du design.")
+        if ties:
+            n = len(ties)
+            o("   - et cela vaut d abord contre ce run lui-meme : les %d accords"
+              % (1 + n))
+            o("     a %.0f%% de ce groupe (%s) ne sont pas %d succes, ce sont"
+              % (best * 100, ", ".join([CONTROL_ID] + [t[0] for t in ties]),
+                 1 + n))
+            o("     un controle degenere et %s qui ne s en %s."
+              % ("un resultat" if n == 1 else "%d resultats" % n,
+                 "distingue pas" if n == 1 else "distinguent pas"))
+        else:
+            o("   - et cela vaut d abord contre ce run lui-meme : aucun accord")
+            o("     imprime plus haut n atteint celui du controle degenere.")
+        o("  Ce que le controle ne dit PAS : il n annule aucun verdict. %s"
           % CONTROL_ID)
-        o("  est lui-meme %s sur sa propre direction enregistree. Un controle"
+        o("  est lui-meme %s, et un etalon d accord n est pas un"
           % verdicts[CONTROL_ID]["verdict"])
-        o("  qui echoue au reste de la regle reste un etalon d accord, pas un")
-        o("  signal, et il n est jamais compte comme une reussite.")
+        o("  signal : il n est jamais compte comme une reussite. Il est en")
+        o("  revanche compte comme un TIRAGE dans la famille - la barre de")
+        o("  tous les autres se resserre de l avoir mesure, et c est le prix")
+        o("  de remplacer un controle nomme par un controle mesure.")
     else:
         o("  Le controle %s n a produit aucun pli dans ce run : il n y a pas"
           % CONTROL_ID)
@@ -1929,16 +2268,18 @@ def render_report(measurements, verdicts, reg, bar, attempted, data_end, ctx,
     o("    ce qui rend le controle par melange indispensable et laisse le p")
     o("    optimiste malgre tout.")
     o("  - tout l echantillon tient dans une seule tendance baissiere ETH/BTC.")
-    o("    Ce biais n est pas seulement declare ici : il est MESURE par le")
-    o("    controle %s, qui atteint %s d accord en predisant le niveau par"
-      % (CONTROL_ID,
-         ("%.0f%%" % (measurements[CONTROL_ID]["agreement"] * 100))
-         if measurements.get(CONTROL_ID)
-         and measurements[CONTROL_ID]["agreement"] is not None else "-"))
-    o("    lui-meme. Voir la section CONTRE QUOI LIRE UN ACCORD WALK-FORWARD :")
-    o("    c est la que ce biais cesse d etre un aveu pour devenir un chiffre,")
-    o("    et c est ce chiffre - pas 50% - qui est la reference des accords")
-    o("    imprimes plus haut.")
+    o("    Ce biais n est pas seulement declare ici, il est MESURE : %s, la"
+      % PERSISTENCE_ID)
+    o("    reference de persistance, atteint %s en"
+      % _fmt_accord(measurements, PERSISTENCE_ID))
+    o("    confrontant le percentile du niveau ETH/BTC a la direction du")
+    o("    rendement forward ; le controle degenere %s, dont le signal EST"
+      % CONTROL_ID)
+    o("    la cible, atteint %s." % _fmt_accord(measurements, CONTROL_ID))
+    o("    Voir la section CONTRE QUOI LIRE UN ACCORD WALK-FORWARD : c est la")
+    o("    que ce biais cesse d etre un aveu pour devenir deux chiffres, et ce")
+    o("    sont eux - pas 50% - qui sont la reference des accords imprimes")
+    o("    plus haut.")
     o("  - dominance calculee sur un UNIVERS de %d a %d actifs selon le jour"
       % (b_lo, b_hi))
     o("    (et non un panier de cette taille : le panier alt est le top %d)."
