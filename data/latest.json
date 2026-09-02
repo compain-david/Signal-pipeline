@@ -1,6 +1,6 @@
 {
   "date": "2026-09-02",
-  "fetched_at": "2026-09-02T09:49:17.821021+00:00",
+  "fetched_at": "2026-09-02T10:01:33.702356+00:00",
   "schema_version": 4,
   "thresholds": {
     "fear_greed_above": 60,
@@ -17,9 +17,9 @@
   },
   "signals": {
     "eth_btc_momentum": {
-      "signal": 3.55,
+      "signal": 3.77,
       "eth_btc_start": 0.029792,
-      "eth_btc_now": 0.030851,
+      "eth_btc_now": 0.030917,
       "window_days": 14,
       "source": "coingecko (keyless)",
       "vote": false,
@@ -31,12 +31,12 @@
       "tier": "A"
     },
     "btc_dominance": {
-      "signal": 59.07,
-      "btc_dominance_pct": 59.07,
-      "eth_dominance_pct": 10.99,
-      "btc_price_usd": 76537,
-      "eth_price_usd": 2368.43,
-      "eth_btc_ratio": 0.03094,
+      "signal": 59.08,
+      "btc_dominance_pct": 59.08,
+      "eth_dominance_pct": 11.0,
+      "btc_price_usd": 76686,
+      "eth_price_usd": 2374.24,
+      "eth_btc_ratio": 0.03096,
       "source": "coingecko (keyless)",
       "vote": false,
       "fired_rotation_gate": false,
@@ -48,9 +48,9 @@
     },
     "alt_dominance": {
       "status": "building",
-      "signal": 29.94,
+      "signal": 29.92,
       "vote": null,
-      "days_available": 5,
+      "days_available": 6,
       "days_required": 30,
       "source": "derived (btc + eth dominance, keyless)",
       "note": "accumulating the 30-day window from this repo's own history; votes once 30 days exist",
@@ -228,23 +228,23 @@
       "tier": "A"
     },
     "alt_funding_rates": {
-      "signal": 4.7,
-      "alt_avg_funding_apr_pct": 4.7,
-      "btc_funding_apr_pct": 10.56,
-      "alt_minus_btc_apr_pct": -5.86,
-      "previous_apr_pct": 5.02,
-      "previous_spread_pct": -2.8,
-      "rising": false,
+      "signal": 5.02,
+      "alt_avg_funding_apr_pct": 5.02,
+      "btc_funding_apr_pct": 10.67,
+      "alt_minus_btc_apr_pct": -5.65,
+      "previous_apr_pct": 4.7,
+      "previous_spread_pct": -5.86,
+      "rising": true,
       "per_symbol": {
         "ETHUSDT": {
-          "rate_pct": 0.005588,
+          "rate_pct": 0.006185,
           "settlements_per_day": 3,
-          "apr_pct": 6.12
+          "apr_pct": 6.77
         },
         "SOLUSDT": {
-          "rate_pct": -0.001118,
+          "rate_pct": -0.001017,
           "settlements_per_day": 3,
-          "apr_pct": -1.22
+          "apr_pct": -1.11
         },
         "XRPUSDT": {
           "rate_pct": 0.01,
@@ -252,14 +252,14 @@
           "apr_pct": 10.95
         },
         "HYPEUSDT": {
-          "rate_pct": 0.00269,
+          "rate_pct": 0.003162,
           "settlements_per_day": 3,
-          "apr_pct": 2.95
+          "apr_pct": 3.46
         },
         "BTCUSDT": {
-          "rate_pct": 0.00964,
+          "rate_pct": 0.009743,
           "settlements_per_day": 3,
-          "apr_pct": 10.56
+          "apr_pct": 10.67
         }
       },
       "reference_leg": "BTCUSDT",
@@ -316,16 +316,16 @@
     "sth_realized_price": {
       "signal": null,
       "sth_realized_price_usd": 69979.57,
-      "btc_price_usd": 76537,
-      "premium_pct": 9.37,
+      "btc_price_usd": 76686,
+      "premium_pct": 9.58,
       "as_of": "2026-08-28",
       "source": "bgeometrics (keyless)",
       "vote": null,
-      "note": "frozen for 5 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
+      "note": "frozen for 6 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
       "status": "frozen_excluded",
       "source_age_days": 5,
       "stale": true,
-      "frozen_streak": 5,
+      "frozen_streak": 6,
       "excluded_from_composite": true,
       "dimension": 10,
       "dimension_name": "inflection",
@@ -409,8 +409,8 @@
     "status": "SHADOW - unsigned strategy update, governs nothing",
     "state": "BTC",
     "previous_state": "BTC",
-    "days_held": 9,
-    "reason": "held - 9 of 14 minimum days in state",
+    "days_held": 10,
+    "reason": "held - 10 of 14 minimum days in state",
     "pending_decisions": [
       "Sign the versioned strategy update: 25% ETH cap, four-state ladder",
       "Confirm the six thresholds: 0.55/0.45 ETH, 0.70/0.60 ALT, 2 weeks, 70% floor",
