@@ -20,6 +20,7 @@ import dimensions
 import resilience
 import report
 import ladder
+import evidence_gate
 
 
 class TestRegistry(unittest.TestCase):
@@ -568,3 +569,50 @@ class TestLadderBasisInvariant(unittest.TestCase):
         self.assertTrue(ladder.LADDER_RULES["btc_dominance"](p))
         p["signal"] = 59.0
         self.assertFalse(ladder.LADDER_RULES["btc_dominance"](p))
+
+
+class TestEvidenceGate(unittest.TestCase):
+    """Le gate d'evidence doit rester scope a sa preuve, y compris quand
+    quelqu'un voudra l'elargir."""
+
+    def _sig(self, **over):
+        base = {"lth_share": {"status": "ok", "signal": 0.808,
+                              "change_30d": -0.001, "source_age_days": 0}}
+        base.update(over)
+        return base
+
+    def test_rotation_decides_nothing(self):
+        """Le vide cote rotation est le resultat, pas un oubli. Si quelqu'un
+        y ajoute une entree sans que ADOPTION_RULE soit satisfaite, ce test
+        est le garde-fou."""
+        self.assertEqual(evidence_gate.DECIDING["rotation"], [])
+        v = evidence_gate.evaluate(self._sig())
+        self.assertEqual(v["rotation"]["verdict"], "AUCUNE DECISION POSSIBLE")
+
+    def test_never_governs(self):
+        self.assertFalse(evidence_gate.evaluate(self._sig())["governs"])
+
+    def test_sell_side_is_not_armed_despite_a_measured_edge(self):
+        """Le piege exact que ce module doit eviter: un edge encourageant
+        n'arme pas un mecanisme qui vend le portefeuille."""
+        v = evidence_gate.evaluate(self._sig())
+        self.assertTrue(v["sell"]["distributing_30d"])   # le signal tire
+        self.assertFalse(v["sell"]["armed"])             # et n arme rien
+
+    def test_adoption_detail_matches_the_summary(self):
+        v = evidence_gate.evaluate(self._sig())["sell"]
+        passed = sum(1 for x in v["adoption_detail"].values() if x)
+        self.assertEqual(v["adoption_passed"],
+                         "%d/%d" % (passed, len(v["adoption_detail"])))
+
+    def test_stale_input_is_not_readable(self):
+        v = evidence_gate.evaluate(self._sig(
+            lth_share={"status": "ok", "signal": 0.8, "change_30d": -0.01,
+                       "source_age_days": 99}))
+        self.assertFalse(v["sell"]["readable"])
+        self.assertIsNone(v["sell"]["distributing_30d"])
+
+    def test_deciding_inputs_are_a_subset_of_known_signals(self):
+        for axis in evidence_gate.DECIDING.values():
+            for key in axis:
+                self.assertIn(key, dimensions.SIGNAL_REGISTRY, key)

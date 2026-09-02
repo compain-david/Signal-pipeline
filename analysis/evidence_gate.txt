@@ -1,0 +1,32 @@
+==========================================================================
+GATE D EVIDENCE - portee limitee a ce que la preuve autorise
+SHADOW: ne gouverne rien.
+==========================================================================
+
+COTE VENTE
+--------------------------------------------------------------------------
+  entree decisionnelle : lth_share
+  lisible aujourd hui  : oui
+  distribution 30j     : True
+  edge mesure (pts)    : 30j -2.1 | 60j -6.1 | 90j -6.8
+  regle d adoption     : 2/4
+      edge_pts_90d               passe
+      episodes                   ECHOUE
+      walkforward_vs_shuffle     ECHOUE
+      preregistered_direction    passe
+  arme                 : NON
+
+  echoue independance (73 pourcent des jours dans trois episodes) et walk-forward (33 contre un melange a 39, sur trois plis). Meilleur candidat du systeme, et cela ne suffit pas a armer une vente.
+
+COTE ROTATION
+--------------------------------------------------------------------------
+  entrees decisionnelles : 0
+  verdict                : AUCUNE DECISION POSSIBLE
+  zero signal ne passe ADOPTION_RULE apres sept analyses. Le vide est le resultat, pas un oubli.
+
+CE QUI EST LU SANS DECIDER
+--------------------------------------------------------------------------
+  sell      3 lisibles sur 5
+  rotation  8 lisibles sur 9
+
+Un gate symetrique sur une preuve asymetrique serait une symetrie decorative. Celui-ci decide d un cote et rapporte de l autre.
