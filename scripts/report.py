@@ -63,6 +63,19 @@ def render_markdown(snapshot):
 
     out = []
     out.append("# Signal snapshot — %s" % snapshot.get("date", "?"))
+    gov = snapshot.get("governance")
+    if gov:
+        out.append("")
+        out.append("**v%s — instrument qui gouverne : `%s`**"
+                   % (gov.get("version"), gov.get("governing")))
+        out.append("")
+        out.append("| Instrument | Statut | Rôle |")
+        out.append("|---|---|---|")
+        for i in gov.get("instruments", []):
+            out.append("| `%s` | %s | %s |"
+                       % (i["name"],
+                          "**GOUVERNE**" if i["governs"] else "ombre",
+                          i["role"]))
     out.append("")
     out.append("Generated %s · schema v%s"
                % (snapshot.get("fetched_at", "?"), snapshot.get("schema_version", "?")))

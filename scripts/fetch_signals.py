@@ -38,6 +38,8 @@ import dimensions
 import resilience
 import report
 import ladder
+import governance
+import evidence_gate
 
 UA = {"User-Agent": "signal-pipeline/3.0 (personal use)"}
 TIMEOUT = 20
@@ -906,7 +908,7 @@ def main():
     snapshot = {
         "date": today,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
-        "schema_version": 4,
+        "schema_version": 5,
         "thresholds": THRESHOLDS,
         "signals": signals,
         "health": resilience.health(signals),
@@ -914,7 +916,12 @@ def main():
         "gate_new": dimensions.tally(signals, today),
         "gate_grade": dimensions.grade(signals),
         "ladder_shadow": ladder.evaluate(signals, previous),
+        "evidence_gate": evidence_gate.evaluate(signals),
     }
+
+    # En tete, pas en annexe: un lecteur doit savoir qui decide avant de lire
+    # un seul chiffre.
+    snapshot["governance"] = governance.summarise(snapshot, today)
 
     os.makedirs("data", exist_ok=True)
     with open("data/signals_" + today + ".json", "w", encoding="utf-8") as f:

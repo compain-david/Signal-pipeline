@@ -21,6 +21,7 @@ import resilience
 import report
 import ladder
 import evidence_gate
+import governance
 
 
 class TestRegistry(unittest.TestCase):
@@ -616,3 +617,44 @@ class TestEvidenceGate(unittest.TestCase):
         for axis in evidence_gate.DECIDING.values():
             for key in axis:
                 self.assertIn(key, dimensions.SIGNAL_REGISTRY, key)
+
+
+class TestGovernance(unittest.TestCase):
+    """Un seul instrument gouverne. C'est l'invariant que toute cette
+    architecture existe pour tenir - deux autorites sur une decision est la
+    collision que le Pivot Ladder avait identifiee."""
+
+    def _snap(self):
+        return {k: {} for k, _ in governance.HIERARCHY}
+
+    def test_exactly_one_instrument_governs(self):
+        for today in ("2026-09-01", "2026-09-30", "2027-01-01"):
+            g = governance.summarise(self._snap(), today)
+            self.assertEqual(sum(1 for i in g["instruments"] if i["governs"]), 1,
+                             today)
+
+    def test_legacy_governs_before_adoption_and_new_after(self):
+        before = governance.summarise(self._snap(), "2026-09-01")
+        self.assertEqual(before["governing"], "gate_legacy")
+        after = governance.summarise(self._snap(), dimensions.ADOPTED_FROM)
+        self.assertEqual(after["governing"], "gate_new")
+
+    def test_ladder_and_evidence_never_govern(self):
+        """Le premier exige une signature, le second ne demandera jamais."""
+        for today in ("2026-09-01", "2027-06-01", "2030-01-01"):
+            g = governance.summarise(self._snap(), today)
+            for i in g["instruments"]:
+                if i["name"] in ("ladder_shadow", "evidence_gate"):
+                    self.assertFalse(i["governs"], "%s / %s" % (i["name"], today))
+
+    def test_governing_is_computed_from_the_date_not_stored(self):
+        """La seule chose qui change ce statut est le calendrier. Si quelqu'un
+        code le nom en dur, ce test le voit."""
+        self.assertEqual(governance.governing("2026-09-29"), "gate_legacy")
+        self.assertEqual(governance.governing("2026-09-30"), "gate_new")
+
+    def test_every_instrument_states_what_would_promote_it(self):
+        g = governance.summarise(self._snap(), "2026-09-01")
+        for i in g["instruments"]:
+            if i["name"] != "gate_legacy":
+                self.assertTrue(i["to_promote"], i["name"])
