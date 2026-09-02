@@ -1,7 +1,7 @@
 {
   "date": "2026-09-02",
-  "fetched_at": "2026-09-02T10:01:33.702356+00:00",
-  "schema_version": 4,
+  "fetched_at": "2026-09-02T15:53:39.913706+00:00",
+  "schema_version": 5,
   "thresholds": {
     "fear_greed_above": 60,
     "btc_dominance_below": 54.0,
@@ -17,9 +17,9 @@
   },
   "signals": {
     "eth_btc_momentum": {
-      "signal": 3.77,
-      "eth_btc_start": 0.029792,
-      "eth_btc_now": 0.030917,
+      "signal": 1.67,
+      "eth_btc_start": 0.030467,
+      "eth_btc_now": 0.030976,
       "window_days": 14,
       "source": "coingecko (keyless)",
       "vote": false,
@@ -31,12 +31,12 @@
       "tier": "A"
     },
     "btc_dominance": {
-      "signal": 59.08,
-      "btc_dominance_pct": 59.08,
-      "eth_dominance_pct": 11.0,
-      "btc_price_usd": 76686,
-      "eth_price_usd": 2374.24,
-      "eth_btc_ratio": 0.03096,
+      "signal": 59.09,
+      "btc_dominance_pct": 59.09,
+      "eth_dominance_pct": 11.12,
+      "btc_price_usd": 77129,
+      "eth_price_usd": 2387.15,
+      "eth_btc_ratio": 0.03095,
       "source": "coingecko (keyless)",
       "vote": false,
       "fired_rotation_gate": false,
@@ -48,7 +48,7 @@
     },
     "alt_dominance": {
       "status": "building",
-      "signal": 29.92,
+      "signal": 29.79,
       "vote": null,
       "days_available": 6,
       "days_required": 30,
@@ -212,39 +212,38 @@
       "tier": "A"
     },
     "stablecoin_supply_ratio": {
+      "status": "carried_forward",
+      "error": "<urlopen error [Errno 111] Connection refused>",
       "signal": 6.1029,
-      "ref_value": 5.038,
-      "lookback_days": 30,
-      "as_of": "2026-09-01",
-      "change_pct": 21.14,
-      "source": "bgeometrics (keyless)",
-      "vote": false,
-      "note": "votes when SSR is falling over the lookback window",
-      "status": "ok",
-      "source_age_days": 1,
-      "frozen_streak": 0,
+      "vote": null,
+      "fired_rotation_gate": null,
+      "carried_from": "2026-09-02",
+      "carried_age_days": 0,
+      "stale": true,
+      "note": "live fetch failed (<urlopen error [Errno 111] Connection refused>); reusing last good value from 2026-09-02 - not voting",
+      "frozen_streak": 1,
       "dimension": 6,
       "dimension_name": "liquidity",
       "tier": "A"
     },
     "alt_funding_rates": {
-      "signal": 5.02,
-      "alt_avg_funding_apr_pct": 5.02,
-      "btc_funding_apr_pct": 10.67,
-      "alt_minus_btc_apr_pct": -5.65,
-      "previous_apr_pct": 4.7,
-      "previous_spread_pct": -5.86,
+      "signal": 4.89,
+      "alt_avg_funding_apr_pct": 4.89,
+      "btc_funding_apr_pct": 8.67,
+      "alt_minus_btc_apr_pct": -3.78,
+      "previous_apr_pct": 5.02,
+      "previous_spread_pct": -5.65,
       "rising": true,
       "per_symbol": {
         "ETHUSDT": {
-          "rate_pct": 0.006185,
+          "rate_pct": 0.007783,
           "settlements_per_day": 3,
-          "apr_pct": 6.77
+          "apr_pct": 8.52
         },
         "SOLUSDT": {
-          "rate_pct": -0.001017,
+          "rate_pct": -0.0028,
           "settlements_per_day": 3,
-          "apr_pct": -1.11
+          "apr_pct": -3.07
         },
         "XRPUSDT": {
           "rate_pct": 0.01,
@@ -252,14 +251,14 @@
           "apr_pct": 10.95
         },
         "HYPEUSDT": {
-          "rate_pct": 0.003162,
+          "rate_pct": 0.002874,
           "settlements_per_day": 3,
-          "apr_pct": 3.46
+          "apr_pct": 3.15
         },
         "BTCUSDT": {
-          "rate_pct": 0.009743,
+          "rate_pct": 0.007913,
           "settlements_per_day": 3,
-          "apr_pct": 10.67
+          "apr_pct": 8.67
         }
       },
       "reference_leg": "BTCUSDT",
@@ -316,16 +315,16 @@
     "sth_realized_price": {
       "signal": null,
       "sth_realized_price_usd": 69979.57,
-      "btc_price_usd": 76686,
-      "premium_pct": 9.58,
+      "btc_price_usd": 77129,
+      "premium_pct": 10.22,
       "as_of": "2026-08-28",
       "source": "bgeometrics (keyless)",
       "vote": null,
-      "note": "frozen for 6 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
+      "note": "frozen for 7 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
       "status": "frozen_excluded",
       "source_age_days": 5,
       "stale": true,
-      "frozen_streak": 6,
+      "frozen_streak": 7,
       "excluded_from_composite": true,
       "dimension": 10,
       "dimension_name": "inflection",
@@ -333,13 +332,15 @@
     }
   },
   "health": {
-    "ok": 14,
+    "ok": 13,
     "failed": 0,
-    "stale": 0,
+    "stale": 1,
     "structurally_unavailable": 5,
     "frozen": 1,
     "failed_signals": [],
-    "stale_signals": [],
+    "stale_signals": [
+      "stablecoin_supply_ratio"
+    ],
     "frozen_excluded": [
       "sth_realized_price"
     ],
@@ -359,7 +360,7 @@
     "authoritative": false,
     "adopted_from": "2026-09-30",
     "fired": 1,
-    "checkable": 6,
+    "checkable": 5,
     "threshold": 5,
     "would_fire": false,
     "fired_signals": [
@@ -367,6 +368,7 @@
     ],
     "unavailable": [
       "eth_etf_flows",
+      "stablecoin_supply_ratio",
       "sth_realized_price"
     ],
     "tier_b_confirming": [],
@@ -375,14 +377,14 @@
         "exchange_netflows"
       ],
       "froth_fired": [],
-      "rotation_available": 4,
+      "rotation_available": 3,
       "froth_available": 2,
       "reading": "rotation-favourable only"
     },
     "effective_difficulty": {
       "threshold": 5,
-      "of_checkable": 6,
-      "pct_required": 83.3,
+      "of_checkable": 5,
+      "pct_required": 100.0,
       "note": "the old 4/7 gate was ~57% of a CORRELATED base; this is the same ratio on an independent base, which is stricter - see TIER_A_THRESHOLD for the open decision"
     },
     "note": "SHADOW MODE - logged only, legacy gate governs until 2026-09-30"
@@ -391,7 +393,7 @@
     "grade": "D",
     "label": "no actionable signal",
     "score": 1.0,
-    "possible_this_run": 5.6,
+    "possible_this_run": 4.8,
     "max_possible": 7.6,
     "rotation_score": 1.0,
     "froth_score": 0.0,
@@ -409,19 +411,108 @@
     "status": "SHADOW - unsigned strategy update, governs nothing",
     "state": "BTC",
     "previous_state": "BTC",
-    "days_held": 10,
-    "reason": "held - 10 of 14 minimum days in state",
+    "days_held": 11,
+    "reason": "frozen - coverage 57.14% below the 70% floor",
     "pending_decisions": [
       "Sign the versioned strategy update: 25% ETH cap, four-state ladder",
       "Confirm the six thresholds: 0.55/0.45 ETH, 0.70/0.60 ALT, 2 weeks, 70% floor",
       "Confirm the ladder can never enter USDT on its own authority"
     ],
-    "t": 0.2,
-    "coverage": 0.7143,
+    "t": 0.25,
+    "coverage": 0.5714,
     "coverage_floor": 0.7,
-    "measurable": true,
-    "measurable_weight": 5.0,
+    "measurable": false,
+    "measurable_weight": 4.0,
     "total_weight": 7.0,
     "basis": "dimension-capped (coverage and T share one basis)"
+  },
+  "evidence_gate": {
+    "governs": false,
+    "status": "SHADOW - portee limitee a la preuve, ne gouverne rien",
+    "sell": {
+      "deciding_input": "lth_share",
+      "readable": true,
+      "distributing_30d": true,
+      "measured_edge_pts": {
+        "30": -2.1,
+        "60": -6.1,
+        "90": -6.8
+      },
+      "adoption_passed": "2/4",
+      "adoption_detail": {
+        "edge_pts_90d": true,
+        "episodes": false,
+        "walkforward_vs_shuffle": false,
+        "preregistered_direction": true
+      },
+      "armed": false,
+      "why_not_armed": "echoue independance (73 pourcent des jours dans trois episodes) et walk-forward (33 contre un melange a 39, sur trois plis). Meilleur candidat du systeme, et cela ne suffit pas a armer une vente."
+    },
+    "rotation": {
+      "deciding_inputs": [],
+      "verdict": "AUCUNE DECISION POSSIBLE",
+      "why": "zero signal ne passe ADOPTION_RULE apres sept analyses. Le vide est le resultat, pas un oubli."
+    },
+    "reporting": {
+      "sell": {
+        "readable": 3,
+        "total": 5,
+        "signals": [
+          "nupl",
+          "sopr",
+          "puell_multiple"
+        ]
+      },
+      "rotation": {
+        "readable": 7,
+        "total": 9,
+        "signals": [
+          "eth_btc_momentum",
+          "btc_dominance",
+          "alt_funding_rates",
+          "exchange_netflows",
+          "mvrv_z_score",
+          "nvt",
+          "fear_greed"
+        ]
+      }
+    },
+    "note": "Un gate symetrique sur une preuve asymetrique serait une symetrie decorative. Celui-ci decide d un cote et rapporte de l autre."
+  },
+  "governance": {
+    "version": "2.0",
+    "governing": "gate_legacy",
+    "adopted_from": "2026-09-30",
+    "instruments": [
+      {
+        "name": "gate_legacy",
+        "role": "gouverne jusqu a ADOPTED_FROM, par continuite",
+        "present_this_run": true,
+        "governs": true,
+        "to_promote": null
+      },
+      {
+        "name": "gate_new",
+        "role": "gouverne a partir de ADOPTED_FROM",
+        "present_this_run": true,
+        "governs": false,
+        "to_promote": "atteindre ADOPTED_FROM (2026-09-30), idealement avec la ceremonie Part D / Part E prevue"
+      },
+      {
+        "name": "ladder_shadow",
+        "role": "ombre indefinie - mise a jour de strategie non signee",
+        "present_this_run": true,
+        "governs": false,
+        "to_promote": "signature des trois decisions: plafond ETH 25%, les six seuils, et l interdiction d entrer en USDT seule"
+      },
+      {
+        "name": "evidence_gate",
+        "role": "ombre par construction - portee, pas decision",
+        "present_this_run": true,
+        "governs": false,
+        "to_promote": "jamais - il rapporte la portee, il ne decide pas"
+      }
+    ],
+    "note": "Un seul instrument gouverne. Les autres sont lisibles et n engagent rien. Ce bloc est calcule a chaque run, jamais recopie en prose."
   }
 }
