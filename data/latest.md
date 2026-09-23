@@ -1,4 +1,4 @@
-# Signal snapshot — 2026-09-22
+# Signal snapshot — 2026-09-23
 
 **v2.0 — instrument qui gouverne : `gate_legacy`**
 
@@ -9,7 +9,7 @@
 | `ladder_shadow` | ombre | ombre indefinie - mise a jour de strategie non signee |
 | `evidence_gate` | ombre | ombre par construction - portee, pas decision |
 
-Generated 2026-09-22T10:26:09.397086+00:00 · schema v5
+Generated 2026-09-23T10:20:55.627728+00:00 · schema v5
 
 > **DEGRADED RUN** — 0 failed, 0 stale. Check provenance before using these numbers.
 
@@ -20,9 +20,9 @@ Generated 2026-09-22T10:26:09.397086+00:00 · schema v5
 | Regime · STH-RP | — | FAILED (frozen_excluded) |
 | Valuation · MVRV Z | — | FAILED (frozen_excluded) |
 | Miners · Puell | — | FAILED (frozen_excluded) |
-| Sentiment · F&G | 78 | live |
-| Supply · ETH netflow 7d | 85,943 | live |
-| BTC dominance % | 58.91 | live |
+| Sentiment · F&G | 71 | live |
+| Supply · ETH netflow 7d | 104,493 | live |
+| BTC dominance % | 58.68 | live |
 
 Not automatable: ETF net flows (no public API), LTH supply (no free source found).
 
@@ -50,23 +50,23 @@ Unsigned strategy update: this ladder does not govern. Pending: Sign the version
 
 | Signal | Dim | Tier | Value | Vote | Provenance |
 |---|---|---|---|---|---|
-| eth_btc_momentum | 1 | A | 0.65 | no | live |
-| btc_dominance | 1 | track | 58.91 | no | live |
-| alt_dominance | 1 | track | 29.66 | — | FAILED (building) |
+| eth_btc_momentum | 1 | A | 0.97 | no | live |
+| btc_dominance | 1 | track | 58.68 | no | live |
+| alt_dominance | 1 | track | 29.97 | — | FAILED (building) |
 | altseason_index | 1 | track | — | — | not automated |
 | mvrv_z_score | 2 | A | — | — | FAILED (frozen_excluded) |
 | nvt | 2 | A | — | — | FAILED (frozen_excluded) |
-| mvrv_ratio | 2 | track | 1.621 | — | live |
-| mayer_multiple | 2 | track | 1.2264 | — | live |
+| mvrv_ratio | 2 | track | 1.612 | — | live |
+| mayer_multiple | 2 | track | 1.22 | — | live |
 | puell_multiple | 2 | track | — | — | FAILED (frozen_excluded) |
 | nupl | 2 | track | — | — | FAILED (frozen_excluded) |
 | lth_share | 9 | track | 0.805 | — | live |
 | peak_indicators | 4 | track | — | — | not automated |
-| fear_greed | 3 | track | 78 | YES | live |
+| fear_greed | 3 | track | 71 | YES | live |
 | social_volume | 3 | track | — | — | not automated |
 | eth_etf_flows | 5 | A | — | — | not automated |
-| stablecoin_supply_ratio | 6 | A | 6.807 | no | live |
-| alt_funding_rates | 7 | A | 6.79 | no | live |
-| exchange_netflows | 9 | A | 85942.84 | no | live |
+| stablecoin_supply_ratio | 6 | A | 6.7786 | no | live |
+| alt_funding_rates | 7 | A | 6.18 | no | live |
+| exchange_netflows | 9 | A | 104492.72 | no | live |
 | sopr | 9 | track | — | — | FAILED (frozen_excluded) |
 | sth_realized_price | 10 | A | — | — | FAILED (frozen_excluded) |
