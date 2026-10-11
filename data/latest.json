@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-10",
-  "fetched_at": "2026-10-10T11:27:05.080065+00:00",
+  "date": "2026-10-11",
+  "fetched_at": "2026-10-11T11:40:40.678760+00:00",
   "schema_version": 5,
   "thresholds": {
     "fear_greed_above": 60,
@@ -17,9 +17,9 @@
   },
   "signals": {
     "eth_btc_momentum": {
-      "signal": -5.75,
-      "eth_btc_start": 0.031948,
-      "eth_btc_now": 0.030111,
+      "signal": -5.5,
+      "eth_btc_start": 0.031913,
+      "eth_btc_now": 0.030157,
       "window_days": 14,
       "source": "coingecko (keyless)",
       "vote": false,
@@ -31,12 +31,12 @@
       "tier": "A"
     },
     "btc_dominance": {
-      "signal": 59.62,
-      "btc_dominance_pct": 59.62,
+      "signal": 59.67,
+      "btc_dominance_pct": 59.67,
       "eth_dominance_pct": 10.92,
-      "btc_price_usd": 82740,
-      "eth_price_usd": 2492.81,
-      "eth_btc_ratio": 0.03013,
+      "btc_price_usd": 82969,
+      "eth_price_usd": 2500.78,
+      "eth_btc_ratio": 0.03014,
       "source": "coingecko (keyless)",
       "vote": false,
       "fired_rotation_gate": false,
@@ -47,9 +47,9 @@
       "tier": "track"
     },
     "alt_dominance": {
-      "signal": 29.46,
-      "ref_30d": 29.74,
-      "change_pct": -0.28,
+      "signal": 29.41,
+      "ref_30d": 30.18,
+      "change_pct": -0.77,
       "source": "derived (btc + eth dominance, keyless)",
       "vote": false,
       "note": "votes when dominance outside the top 2 is rising over 30 days",
@@ -72,15 +72,15 @@
     },
     "mvrv_z_score": {
       "signal": null,
-      "as_of": "2026-10-03",
+      "as_of": "2026-10-04",
       "metric": "mvrv_z_score",
       "source": "bgeometrics (keyless)",
       "vote": null,
       "status": "frozen_excluded",
       "source_age_days": 7,
       "stale": true,
-      "note": "frozen for 29 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
-      "frozen_streak": 29,
+      "note": "frozen for 30 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
+      "frozen_streak": 30,
       "excluded_from_composite": true,
       "dimension": 2,
       "dimension_name": "valuation",
@@ -88,24 +88,24 @@
     },
     "nvt": {
       "signal": null,
-      "avg_90d": 24.29,
-      "as_of": "2026-10-03",
+      "avg_90d": 24.342,
+      "as_of": "2026-10-04",
       "source": "bgeometrics (keyless)",
       "vote": null,
-      "note": "frozen for 28 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
+      "note": "frozen for 29 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
       "status": "frozen_excluded",
       "source_age_days": 7,
       "stale": true,
-      "frozen_streak": 28,
+      "frozen_streak": 29,
       "excluded_from_composite": true,
       "dimension": 2,
       "dimension_name": "valuation",
       "tier": "A"
     },
     "mvrv_ratio": {
-      "signal": 1.534,
+      "signal": 1.541,
       "metric": "mvrv_ratio",
-      "as_of": "2026-10-09",
+      "as_of": "2026-10-10",
       "source": "coinmetrics (community, keyless)",
       "vote": null,
       "fired_rotation_gate": false,
@@ -118,8 +118,8 @@
       "tier": "track"
     },
     "mayer_multiple": {
-      "signal": 1.1494,
-      "as_of": "2026-10-09",
+      "signal": 1.154,
+      "as_of": "2026-10-10",
       "source": "bgeometrics (keyless)",
       "vote": null,
       "status": "ok",
@@ -131,14 +131,14 @@
     },
     "puell_multiple": {
       "signal": null,
-      "as_of": "2026-10-03",
+      "as_of": "2026-10-04",
       "source": "bgeometrics (keyless)",
       "vote": null,
-      "note": "frozen for 29 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
+      "note": "frozen for 30 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
       "status": "frozen_excluded",
       "source_age_days": 7,
       "stale": true,
-      "frozen_streak": 29,
+      "frozen_streak": 30,
       "excluded_from_composite": true,
       "dimension": 2,
       "dimension_name": "valuation",
@@ -146,14 +146,14 @@
     },
     "nupl": {
       "signal": null,
-      "as_of": "2026-10-03",
+      "as_of": "2026-10-04",
       "source": "bgeometrics (keyless)",
       "vote": null,
-      "note": "frozen for 31 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
+      "note": "frozen for 32 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
       "status": "frozen_excluded",
       "source_age_days": 7,
       "stale": true,
-      "frozen_streak": 31,
+      "frozen_streak": 32,
       "excluded_from_composite": true,
       "dimension": 2,
       "dimension_name": "valuation",
@@ -161,10 +161,10 @@
     },
     "lth_share": {
       "signal": 0.797,
-      "change_30d": -0.009,
-      "ref_30d": 0.806,
-      "ref_date": "2026-09-09",
-      "as_of": "2026-10-09",
+      "change_30d": -0.01,
+      "ref_30d": 0.807,
+      "ref_date": "2026-09-10",
+      "as_of": "2026-10-10",
       "distributing": true,
       "boundary_days": 180,
       "canonical_lth_days": 155,
@@ -189,7 +189,7 @@
       "tier": "track"
     },
     "fear_greed": {
-      "signal": 64,
+      "signal": 61,
       "classification": "Greed",
       "source": "alternative.me",
       "vote": true,
@@ -221,11 +221,11 @@
       "tier": "A"
     },
     "stablecoin_supply_ratio": {
-      "signal": 6.52,
-      "ref_value": 6.029,
+      "signal": 6.5482,
+      "ref_value": 6.0733,
       "lookback_days": 30,
-      "as_of": "2026-10-09",
-      "change_pct": 8.14,
+      "as_of": "2026-10-10",
+      "change_pct": 7.82,
       "source": "bgeometrics (keyless)",
       "vote": false,
       "note": "votes when SSR is falling over the lookback window",
@@ -237,38 +237,38 @@
       "tier": "A"
     },
     "alt_funding_rates": {
-      "signal": 1.79,
-      "alt_avg_funding_apr_pct": 1.79,
-      "btc_funding_apr_pct": 1.33,
-      "alt_minus_btc_apr_pct": 0.46,
-      "previous_apr_pct": -5.06,
-      "previous_spread_pct": -2.5,
+      "signal": 3.31,
+      "alt_avg_funding_apr_pct": 3.31,
+      "btc_funding_apr_pct": -0.22,
+      "alt_minus_btc_apr_pct": 3.53,
+      "previous_apr_pct": 1.79,
+      "previous_spread_pct": 0.46,
       "rising": true,
       "per_symbol": {
         "ETHUSDT": {
-          "rate_pct": 0.003765,
+          "rate_pct": 0.001093,
           "settlements_per_day": 3,
-          "apr_pct": 4.12
+          "apr_pct": 1.2
         },
         "SOLUSDT": {
-          "rate_pct": 0.000509,
+          "rate_pct": 0.007653,
           "settlements_per_day": 3,
-          "apr_pct": 0.56
+          "apr_pct": 8.38
         },
         "XRPUSDT": {
-          "rate_pct": 0.004482,
+          "rate_pct": 0.005191,
           "settlements_per_day": 3,
-          "apr_pct": 4.91
+          "apr_pct": 5.68
         },
         "HYPEUSDT": {
-          "rate_pct": -0.002216,
+          "rate_pct": -0.001851,
           "settlements_per_day": 3,
-          "apr_pct": -2.43
+          "apr_pct": -2.03
         },
         "BTCUSDT": {
-          "rate_pct": 0.001214,
+          "rate_pct": -0.000205,
           "settlements_per_day": 3,
-          "apr_pct": 1.33
+          "apr_pct": -0.22
         }
       },
       "reference_leg": "BTCUSDT",
@@ -287,18 +287,18 @@
       "tier": "A"
     },
     "exchange_netflows": {
-      "signal": 122797.21,
+      "signal": 142649.83,
       "btc": {
-        "as_of": "2026-10-09",
-        "held_native": 2672865.56,
-        "netflow_1d": 7473.52,
-        "netflow_7d": -5426.64
+        "as_of": "2026-10-10",
+        "held_native": 2673672.79,
+        "netflow_1d": 807.24,
+        "netflow_7d": 49.0
       },
       "eth": {
-        "as_of": "2026-10-09",
-        "held_native": 15499952.16,
-        "netflow_1d": 71533.85,
-        "netflow_7d": 122797.21
+        "as_of": "2026-10-10",
+        "held_native": 15501106.54,
+        "netflow_1d": 1154.38,
+        "netflow_7d": 142649.83
       },
       "source": "coinmetrics (community, keyless)",
       "interpretation": "negative = net outflow from exchanges = accumulation",
@@ -312,14 +312,14 @@
     },
     "sopr": {
       "signal": null,
-      "as_of": "2026-10-03",
+      "as_of": "2026-10-04",
       "source": "bgeometrics (keyless)",
       "vote": null,
       "status": "frozen_excluded",
       "source_age_days": 7,
       "stale": true,
-      "note": "frozen for 31 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
-      "frozen_streak": 31,
+      "note": "frozen for 32 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
+      "frozen_streak": 32,
       "excluded_from_composite": true,
       "dimension": 9,
       "dimension_name": "supply_side",
@@ -327,17 +327,17 @@
     },
     "sth_realized_price": {
       "signal": null,
-      "sth_realized_price_usd": 73896.84,
-      "btc_price_usd": 82740,
-      "premium_pct": 11.97,
-      "as_of": "2026-10-03",
+      "sth_realized_price_usd": 73844.91,
+      "btc_price_usd": 82969,
+      "premium_pct": 12.36,
+      "as_of": "2026-10-04",
       "source": "bgeometrics (keyless)",
       "vote": null,
-      "note": "frozen for 29 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
+      "note": "frozen for 30 consecutive runs (limit 3) - EXCLUDED from the composite. An unverifiable value must not persist as an unchanged reading. Resolve the source or drop the dimension.",
       "status": "frozen_excluded",
       "source_age_days": 7,
       "stale": true,
-      "frozen_streak": 29,
+      "frozen_streak": 30,
       "excluded_from_composite": true,
       "dimension": 10,
       "dimension_name": "inflection",
@@ -427,7 +427,7 @@
     "status": "SHADOW - unsigned strategy update, governs nothing",
     "state": "BTC",
     "previous_state": "BTC",
-    "days_held": 49,
+    "days_held": 50,
     "reason": "T 0.18, no rung crossed",
     "pending_decisions": [
       "Sign the versioned strategy update: 25% ETH cap, four-state ladder",
