@@ -1,4 +1,4 @@
-# Signal snapshot — 2026-10-19
+# Signal snapshot — 2026-10-20
 
 **v2.0 — instrument qui gouverne : `gate_new`**
 
@@ -9,7 +9,7 @@
 | `ladder_shadow` | ombre | ombre indefinie - mise a jour de strategie non signee |
 | `evidence_gate` | ombre | ombre par construction - portee, pas decision |
 
-Generated 2026-10-19T11:21:23.364410+00:00 · schema v5
+Generated 2026-10-20T10:30:04.247186+00:00 · schema v5
 
 > **DEGRADED RUN** — 0 failed, 0 stale. Check provenance before using these numbers.
 
@@ -20,9 +20,9 @@ Generated 2026-10-19T11:21:23.364410+00:00 · schema v5
 | Regime · STH-RP | — | FAILED (frozen_excluded) |
 | Valuation · MVRV Z | — | FAILED (frozen_excluded) |
 | Miners · Puell | — | FAILED (frozen_excluded) |
-| Sentiment · F&G | 59 | live |
-| Supply · ETH netflow 7d | 80,639 | live |
-| BTC dominance % | 60.17 | live |
+| Sentiment · F&G | 55 | live |
+| Supply · ETH netflow 7d | 110,436 | live |
+| BTC dominance % | 59.60 | live |
 
 Not automatable: ETF net flows (no public API), LTH supply (no free source found).
 
@@ -31,18 +31,18 @@ Not automatable: ETF net flows (no public API), LTH supply (no free source found
 | | |
 |---|---|
 | State | **BTC** |
-| T | **0.0** |
+| T | **0.1818** |
 | Coverage | 78.57% (floor 70%) |
 | Measurable | yes |
-| Reason | T 0.00, no rung crossed |
+| Reason | T 0.18, no rung crossed |
 
 Unsigned strategy update: this ladder does not govern. Pending: Sign the versioned strategy update: 25% ETH cap, four-state ladder; Confirm the six thresholds: 0.55/0.45 ETH, 0.70/0.60 ALT, 2 weeks, 70% floor; Confirm the ladder can never enter USDT on its own authority
 
 ## Gates
 
-- **10-dimension (AUTHORITATIVE):** 0 of 4 fired, threshold 5 → would not fire
-  - grade **D** — no actionable signal (0.0 of 3.8 achievable this run)
-  - reading: no signal
+- **10-dimension (AUTHORITATIVE):** 1 of 4 fired, threshold 5 → would not fire
+  - grade **D** — no actionable signal (1.0 of 3.8 achievable this run)
+  - reading: rotation-favourable only
   - not counted: mvrv_z_score, nvt, eth_etf_flows, sth_realized_price
 - **Legacy (retained for continuity):** 0 of 5 — none
 
@@ -50,23 +50,23 @@ Unsigned strategy update: this ladder does not govern. Pending: Sign the version
 
 | Signal | Dim | Tier | Value | Vote | Provenance |
 |---|---|---|---|---|---|
-| eth_btc_momentum | 1 | A | -6.95 | no | live |
-| btc_dominance | 1 | track | 60.17 | no | live |
-| alt_dominance | 1 | track | 29.08 | no | live |
+| eth_btc_momentum | 1 | A | -6.94 | no | live |
+| btc_dominance | 1 | track | 59.6 | no | live |
+| alt_dominance | 1 | track | 29.8 | no | live |
 | altseason_index | 1 | track | — | — | not automated |
 | mvrv_z_score | 2 | A | — | — | FAILED (frozen_excluded) |
 | nvt | 2 | A | — | — | FAILED (frozen_excluded) |
-| mvrv_ratio | 2 | track | 1.521 | — | live |
-| mayer_multiple | 2 | track | 1.131 | — | live |
+| mvrv_ratio | 2 | track | 1.52 | — | live |
+| mayer_multiple | 2 | track | 1.129 | — | live |
 | puell_multiple | 2 | track | — | — | FAILED (frozen_excluded) |
 | nupl | 2 | track | — | — | FAILED (frozen_excluded) |
-| lth_share | 9 | track | 0.796 | — | live |
+| lth_share | 9 | track | 0.797 | — | live |
 | peak_indicators | 4 | track | — | — | not automated |
-| fear_greed | 3 | track | 59 | no | live |
+| fear_greed | 3 | track | 55 | no | live |
 | social_volume | 3 | track | — | — | not automated |
 | eth_etf_flows | 5 | A | — | — | not automated |
-| stablecoin_supply_ratio | 6 | A | 6.5018 | no | live |
-| alt_funding_rates | 7 | A | 6.02 | no | live |
-| exchange_netflows | 9 | A | 80638.8 | no | live |
+| stablecoin_supply_ratio | 6 | A | 6.4977 | no | live |
+| alt_funding_rates | 7 | A | 3.24 | YES | live |
+| exchange_netflows | 9 | A | 110435.63 | no | live |
 | sopr | 9 | track | — | — | FAILED (frozen_excluded) |
 | sth_realized_price | 10 | A | — | — | FAILED (frozen_excluded) |
